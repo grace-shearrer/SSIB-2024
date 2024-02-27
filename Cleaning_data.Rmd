@@ -1,0 +1,340 @@
+---
+title: "Cleaning_data"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-06-08"
+---
+
+Libraries
+
+```{r, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(childsds)
+library(MatchIt)
+library(vroom)
+```
+
+# Preparing data
+
+## Sugary beverage intake
+
+```{r}
+soda_raw_data <- vroom(r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\data\raw\abcd_bkfs01.txt)", delim = "\t",col_select = c("subjectkey","interview_age", "sex", "eventname", "bkfs_soda")) 
+#,"bkfs_sodafreq", "bkfs_sodaquan")) - these are extra vars we could use
+#chose necessary columns only 
+
+#bkfs_sodafreq - soft drinks freq/last week
+#bkfs_sodaquan - soft drinks #/day
+
+#rename cols
+colnames(soda_raw_data)=c("ID", "age_months", "sex", "event", "soda_per_day")
+
+#drop 1 row - it's notes, not data
+soda_raw_data <- soda_raw_data[-1,]
+
+#filter 2nd year data - cuz BKFS data is only available for 2nd year
+summary(as.factor(soda_raw_data$event))
+soda_raw_data = soda_raw_data[soda_raw_data$event == '2_year_follow_up_y_arm_1',]
+#10414 subjects 
+
+#drop weird 2 people who drink 777 sodas per day and NAs
+soda_clean_data <- soda_raw_data[!soda_raw_data$soda_per_day == "777", ]
+#10403
+soda_clean_data <- soda_clean_data[complete.cases(soda_clean_data), ]
+#10342
+
+```
+
+
+# Now pulling up BMI data and other vars from my old ABCD analysis
+
+```{r}
+#pulling data from my abcd analysis
+pulled_data <- read.csv(r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\data\raw\SSRT_data.csv)")[ ,c('src_subject_id', 'anthro_bmi_calc', "anthro_height_calc", "anthro_weight_calc", "anthro_waist_cm", "race_ethnicity", "household.income.bl", "event_name")]
+colnames(pulled_data)
+
+
+#filter 1st year
+#cause this is where they have full data on income, race-ethnicity
+summary(as.factor(pulled_data$event_name))
+pulled_data = pulled_data[pulled_data$event_name == 'baseline_year_1_arm_1',]
+#11876 subs 
+
+
+#renaming stupid cols
+names(pulled_data)[names(pulled_data) == 'src_subject_id'] <- 'ID'
+names(pulled_data)[names(pulled_data) == 'anthro_bmi_calc'] <- 'bmi'
+names(pulled_data)[names(pulled_data) == 'anthro_height_calc'] <- 'height'
+names(pulled_data)[names(pulled_data) == 'anthro_weight_calc'] <- 'weight'
+names(pulled_data)[names(pulled_data) == 'household.income.bl'] <- 'household.income'
+#11876 subs
+
+#merge with soda data
+#didn't include the event_name (8th column) 
+soda_clean_data <- merge(soda_clean_data, pulled_data[,c(1:7)], by = "ID")
+#drop NAs
+summary(as.factor(soda_clean_data$bmi))
+soda_clean_data <- soda_clean_data[complete.cases(soda_clean_data), ]
+#9452 subs
+```
+# convert char columns into numeric
+```{r}
+lapply(soda_clean_data, class)
+#all columns are chars
+
+#convert char columns into numeric
+colnames(soda_clean_data)
+
+soda_clean_data[, c(2,5:9)] <- sapply(soda_clean_data[, c(2,5:9)], as.numeric)
+```
+
+#Add BMI%
+```{r}
+
+#names(dna)
+soda_clean_data$age_years <- soda_clean_data$age_months/12
+
+library(childsds)
+
+soda_clean_data$bmi_perc <- childsds::sds(soda_clean_data$bmi,
+                    age = soda_clean_data$age_years,
+                    sex = soda_clean_data$sex, male = "M", female = "F",
+                    ref = cdc.ref,
+                    item = "bmi",
+                    type = "perc")
+
+soda_clean_data$bmi_perc <- soda_clean_data$bmi_perc*100
+```
+
+
+#Filter out underweights
+#Add BMI% groups
+
+```{r}
+#filter out underweights
+
+soda_clean_data <- soda_clean_data %>% filter(bmi_perc > 5)
+summary(soda_clean_data$bmi_perc)
+#8416 subs 
+
+#add new column of bmi categories
+soda_clean_data$bmi_perc_group <- cut(soda_clean_data$bmi_perc,
+                          breaks=c(5, 85, 95, 100),
+                          labels=c('Recommended', 'Overweight', 'Obese'))
+summary(as.factor(soda_clean_data$bmi_perc_group))
+
+#Recommended  Overweight       Obese 
+#       6522        1064         830 
+```
+
+
+
+## Resting state correlation
+```{r}
+rest_corr_raw_data <- vroom(file = r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\data\raw\abcd_betnet02.txt)", delim = "\t")
+
+#drop unneeded columns and row 1 (row 1 only has notes, no data)
+colnames(rest_corr_raw_data)
+rest_corr_raw_data <- rest_corr_raw_data[-1, -c(1:3, 5:8, 192, 193)]
+
+#rename columns to better names
+names(rest_corr_raw_data)[names(rest_corr_raw_data) == 'subjectkey'] <- 'ID'
+names(rest_corr_raw_data)[names(rest_corr_raw_data) == 'eventname'] <- 'event'
+
+#filter 2nd year
+summary(as.factor(rest_corr_raw_data$event))
+rest_corr_raw_data = rest_corr_raw_data[rest_corr_raw_data$event == '2_year_follow_up_y_arm_1',]
+
+#drop unneccessary column (event) and nas
+colnames(rest_corr_raw_data)
+rest_corr_raw_data <- rest_corr_raw_data[, -2]
+rest_corr_raw_data <- rest_corr_raw_data[complete.cases(rest_corr_raw_data), ]
+#7626 subs
+
+
+```
+
+### Merging REST_CORR with the SODA umatched dataset
+```{r}
+soda_rest_unmatched <- merge(soda_clean_data, rest_corr_raw_data, by = "ID")
+#7626 kids
+```
+
+
+## Subcortical
+
+```{r}
+data_raw_subcortical <- vroom(file = r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\data\raw\mrirscor02.txt)", delim = "\t")
+
+
+#drop unneeded columns and row 1 (row 1 only has notes, no data)
+colnames(data_raw_subcortical)
+data_raw_subcortical <- data_raw_subcortical[-1, -c(1:3, 5:8, 270, 271)]
+#262 vars
+
+#rename columns to better names
+names(data_raw_subcortical)[names(data_raw_subcortical) == 'subjectkey'] <- 'ID'
+names(data_raw_subcortical)[names(data_raw_subcortical) == 'eventname'] <- 'event'
+
+#filter 2nd year
+summary(as.factor(data_raw_subcortical$event))
+data_raw_subcortical = data_raw_subcortical[data_raw_subcortical$event == '2_year_follow_up_y_arm_1',]
+
+#drop unneccessary column (event) and nas
+colnames(data_raw_subcortical)
+
+data_raw_subcortical <- data_raw_subcortical[, -2]
+#261 cols
+data_raw_subcortical <- data_raw_subcortical[complete.cases(data_raw_subcortical), ]
+#7626 subs
+
+
+```
+
+
+
+```{r}
+library(MatchIt)
+
+#I will use the matchit function
+#It requires 2 only - the group must be binary
+#so I will create separate dfs with overweight and recommended folks
+
+# I. REC BRAIN GROUP
+# 1.1. rec group - dropping overweight
+rec_brain_data <-subset(soda_rest_unmatched, soda_rest_unmatched$bmi_perc_group != "Overweight")
+
+# 1.2 
+rec_brain_data$bmi_perc_group <- droplevels(as.factor(rec_brain_data$bmi_perc_group))
+summary(as.factor(rec_brain_data$bmi_perc_group))  
+#Recommended       Obese 
+#       4886         593
+
+#1.3
+rec_brain_data <- matchit(as.factor(bmi_perc_group) ~ age_years + sex + race_ethnicity, data = rec_brain_data)
+# 1.4
+rec_brain_data <- match.data(rec_brain_data)
+summary(rec_brain_data$bmi_perc_group)
+#Recommended       Obese 
+#        593         593 
+
+# II. BRAIN OV GROUP
+# Now doing the same for the overweight group
+
+#2.1. ov group - dropping overweight
+ov_brain_data <- subset(soda_rest_unmatched, soda_rest_unmatched$bmi_perc_group != "Recommended")
+
+#2.2
+ov_brain_data$bmi_perc_group <- droplevels(as.factor(ov_brain_data$bmi_perc_group))
+summary(as.factor(ov_brain_data$bmi_perc_group))
+
+#2.3
+ov_brain_data <- matchit(as.factor(bmi_perc_group) ~ age_years + sex, data = ov_brain_data)
+summary(ov_brain_data)
+#ov is some regression results
+#so turning it into df
+# 2.4 
+ov_brain_data <- match.data(ov_brain_data)
+summary(ov_brain_data$bmi_perc_group)
+# Overweight      Obese 
+#       593        593 
+
+# III. BRAIN MERGING 
+
+# 3.1. now drop obese from the ov, so that when I join 2 dfs, it won't have obese subs doubled
+#now drop obese from the ov, so that when I join 2 dfs, it won't have obese subs doubled
+ov_brain_data <- subset(ov_brain_data, ov_brain_data$bmi_perc_group != "Obese")
+#still has obese group which makes our group non-binary
+#3.2 
+ov_brain_data$bmi_perc_group <- droplevels(as.factor(ov_brain_data$bmi_perc_group))
+summary(as.factor(ov_brain_data$bmi_perc_group))  
+#Overweight 
+#       593
+
+# 3.3 now merging dfs
+soda_rest_corr <- bind_rows(rec_brain_data, ov_brain_data)
+#199 cols
+#1779 subs
+
+# 3.4 have some weird columns created during the process, so deleteing them
+soda_rest_corr <- soda_rest_corr[, c(-(197:199))]
+#196
+```
+
+
+# Creating the same dataset for subcortical
+```{r}
+#I don't want to repeat all the bmi sorting staff
+#So I'll just pull IDs from the resting state matched dataset
+#And bind subcortical data instead
+
+IDs <- data.frame(soda_rest_corr$ID)
+
+#rename the column
+colnames(IDs)
+names(IDs)[names(IDs) == 'soda_rest_corr.ID'] <- 'ID'
+soda_brain_matched <- merge(IDs, soda_clean_data, by = "ID")
+
+#bind subcortical data
+soda_subcortical <- merge(soda_brain_matched, data_raw_subcortical, by = "ID")
+
+#checking
+summary(as.factor(soda_subcortical$bmi_perc_group))
+
+#Recommended  Overweight       Obese 
+#        593         593         593 
+```
+
+
+# Plotting the distribution of sugar beverage intake
+
+## Check if cols are numerical where needed
+```{r}
+lapply(soda_rest_corr, class)
+lapply(soda_subcortical, class)
+#all brain data columns are chars
+
+#convert char columns into numeric
+colnames(soda_rest_corr)
+soda_rest_corr[, c(16:196)] <- sapply(soda_rest_corr[, c(16:196)], as.numeric)
+
+colnames(soda_subcortical)
+soda_subcortical[, c(16:274)] <- sapply(soda_subcortical[, c(16:274)], as.numeric)
+```
+
+
+## For beverage and resting state correlation
+```{r}
+hist(soda_rest_corr$soda_per_day)
+
+#saving the plots into png files
+summary(as.factor(soda_rest_corr$soda_per_day))
+
+png(filename=r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\Scripts\0_Working\outputs\distribution_soda_per_day_rest.png)")
+hist(soda_rest_corr$soda_per_day, main = "Distribution of soda per day \nn=1779 (BMI% groups matched)")
+dev.off()
+
+png(filename=r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\Scripts\0_Working\outputs\distribution_soda_per_day_subcort.png)")
+hist(soda_subcortical$soda_per_day, main = "Distribution of sugary beverage intake frequency \nn=1779 (BMI% groups matched)")
+dev.off()
+```
+
+
+```{r}
+write.csv(soda_rest_corr, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\clean\rest_corr.csv)", row.names=FALSE)
+write.csv(soda_subcortical, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\clean\subcortical.csv)", row.names=FALSE)
+```
+
+```{r}
+summary(as.factor(soda_rest_corr$bmi_perc_group))
+```
+
+
+
+```{r}
+#add mean centered age
+#dna$mcage <- scale(dna$age, scale = FALSE)
+```
