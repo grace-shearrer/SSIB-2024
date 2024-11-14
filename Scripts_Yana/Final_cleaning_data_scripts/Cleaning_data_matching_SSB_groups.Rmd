@@ -1,0 +1,329 @@
+# Libraries
+
+```{r, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(childsds)
+library(MatchIt)
+library(vroom)
+```
+
+# Reading data
+
+## Sugary beverage intake
+
+### Grace Redo
+I am unable to get your code generate results (it just becomes blank). I think probably you have a saved dataset that is in memory but not saved on the drive. This is also why you need to keep you data on the drive and use the data from the drive. If you keep doing this locally I can't help you and I end up re-doing everything. 
+
+# Read in all the data at the same time
+```{r}
+# soda_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_bkfs01.txt")
+# anthro_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_ant01.txt")
+# demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/pdem02.txt")
+# brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
+# subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
+
+
+soda_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\abcd_bkfs01.txt)")
+anthro_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\abcd_ant01.txt)")
+demo_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/pdem02.txt)")
+brain_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/abcd_betnet02.txt)")
+subcort_brain_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/mrirscor02.txt)")
+
+anthro_data_2 <- read.csv(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\SSRT_data.csv)")[ ,c('src_subject_id', "race_ethnicity", "household.income.bl", "event_name")]
+#read necessary columns only
+```
+
+# Create a quick data dict
+```{r}
+DD<-cbind(head(soda_data,1), head(anthro_data, 1), head(demo_data,1), head(brain_data, 1), head(subcort_brain_data,1), head(anthro_data_2,1))
+DT <-data.frame(t(DD))
+DT$variable = row.names(DT) 
+names(DT)[c(1, 2)] <- c("variable", "description")
+
+#write.table(DT, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/dataDict.csv", sep = ",", row.names = FALSE)
+
+write.table(DT, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024/data/dataDict.csv)", sep = ",", row.names = FALSE)
+
+```
+
+
+# Filter by event then drop event column
+We are going to try to predict the SSB intake from the baseline data so we want baseline for the brain data
+```{r}
+soda_data <- soda_data[soda_data$eventname == '2_year_follow_up_y_arm_1',]
+brain_data <- brain_data[brain_data$eventname == 'baseline_year_1_arm_1',]
+demo_data <- demo_data[demo_data$eventname == 'baseline_year_1_arm_1',]
+subcort_brain_data <- subcort_brain_data[subcort_brain_data$eventname == 'baseline_year_1_arm_1',]
+anthro_data_2 <- anthro_data_2[anthro_data_2$event_name == 'baseline_year_1_arm_1',]
+```
+
+# Get columns of interest
+
+```{r}
+names(anthro_data)
+soda_interest<-c("subjectkey", "sex", "bkfs_soda")
+anthro_interest<-c("subjectkey", "sex", "interview_age", "anthroheightcalc", "anthroweight1lb", "anthroweight2lb", "anthroweight3lb")
+#anthro_interest<-c("")
+brain_interest<-c(4,8,23:191)
+subcort_interest<-c(4,8,23:269)
+#subset
+soda_df<-soda_data[soda_interest]
+anthro_df<-anthro_data[anthro_interest]
+brain_df<-brain_data[,brain_interest]
+subcort_df<-subcort_brain_data[,subcort_interest]
+subcort_df
+```
+
+
+# Join the datasets into a single dataframe
+```{r}
+df0<-join(soda_df, anthro_df)
+df0.1<-join(df0,brain_df)
+df0.2<-join(df0.1,subcort_df)
+#renaming the ID column, otherwise it won't be able to join
+names(anthro_data_2)[names(anthro_data_2) == 'src_subject_id'] <- 'subjectkey'
+df0.3<-join(df0.2, anthro_data_2)
+head(df0.3)
+DF<-df0.3
+```
+
+#Drop missing values
+```{r}
+DF<-DF[complete.cases(DF), ]
+```
+
+#Find the class of all columns and then cast columns as factors or numeric as needed
+Why the factoring does not work? It keeps appearing as a character.
+
+```{r}
+sapply(DF, class)
+colnames(DF)
+DF[,c(1,2,425:427)]<-sapply(DF[,c(1,2,425:427)], as.factor)
+DF[,c(3:424)]<-sapply(DF[,c(3:424)], as.numeric)
+```
+# Test making income a ranked factor (works okay)
+
+```{r}
+# Cast the income as ordinal variables with the given levels
+income_df <- DF
+summary(as.factor(income_df$household.income.bl))
+
+income_df$household.income.bl <- factor(income_df$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
+```
+
+# Releveling income at DF
+
+```{r}
+summary(as.factor(DF$household.income.bl))
+
+DF$household.income.bl <- factor(DF$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
+```
+
+
+#Create groups for SSB
+If you give it an upper limit you don't need the part with the 777 it would remove those also if you have -Inf you might be picking up inaccurate negative soda intake, best to keep the bottom as 0. I just copied and pasted this above, but for the next iteration do this. 
+
+If I keep the bottom at 0, it says the breaks are incorrect.
+It's okay to use -Inf here since the minimum is 0.
+
+```{r}
+summary(DF$bkfs_soda)
+DF$ssb_group <- cut(DF$bkfs_soda,
+                          breaks=c(-Inf, 0, 2, 10), 
+                          labels=c('low', 'medium', 'high'))
+```
+
+# Get the mean weight
+```{r}
+DF$anthroweightcalc <- apply(X=DF[c("anthroweight1lb","anthroweight2lb", "anthroweight3lb")], MARGIN=1, FUN=mean, na.rm=TRUE)
+```
+
+
+# Calculate BMI and age in years
+```{r}
+DF$BMI<-(DF$anthroweightcalc/(DF$anthroheightcalc)^2)*703
+DF$age_years<-DF$interview_age/12
+```
+
+# Calculate BMI%
+```{r}
+DF$bmi_perc <- childsds::sds(DF$BMI,
+                    age = DF$age_years,
+                    sex = DF$sex, male = "M", female = "F",
+                    ref = cdc.ref,
+                    item = "bmi",
+                    type = "perc")
+DF$bmi_perc
+```
+# remove exlcusion criteria (added 11/14/24)
+
+
+
+# Create high vs low, and low vs. medium datasets
+Since low will be the reference group, we want to match based on the reference group
+```{r}
+DFhigh_low<-subset(DF, DF$ssb_group != "medium")
+DFmedium_low<-subset(DF, DF$ssb_group != "high")
+
+DFhigh_low$ssb_group<-factor(DFhigh_low$ssb_group)
+DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
+
+```
+
+# Perform initial matching with null to get an idea of differences
+```{r}
+m.out0 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFhigh_low,
+                 method = NULL, distance = "glm")
+m.out0.1 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFmedium_low,
+                 method = NULL, distance = "glm")
+
+```
+
+```{r}
+summary(m.out0.1)
+```
+# Perform matching using nearest neightbor (it works OK)
+```{r}
+m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFhigh_low,
+                 method = "nearest", distance = "glm")
+
+m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
+                 method = "nearest", distance = "glm")
+
+```
+
+# Get dataset from matched output
+```{r}
+highLow_DF <- match.data(m.out_highLow)
+
+mediumLow_DF <- match.data(m.out_mediumLow)
+```
+
+# Subset the matched datasets into lows, mediums, and highs
+```{r}
+lows1<-subset(highLow_DF, highLow_DF$ssb_group == "low")
+lows2<-subset(mediumLow_DF, mediumLow_DF$ssb_group == "low")
+medium <-subset(mediumLow_DF, mediumLow_DF$ssb_group  != "low")
+highs <-subset(highLow_DF, highLow_DF$ssb_group   != "low")
+```
+
+# We have more medium than low and high. Since we already matched them we can randomly select rows so that we have the same number in the medium group
+
+
+```{r}
+set.seed(123) # Setting a seed for reproducibility
+mediums <- medium[sample(nrow(medium), 483), ] #was 513 in Grace's version, changed to 483 cuz now we have less lows&highs
+```
+
+# Join the low groups so we have the lows that match both the medium and high groups
+```{r}
+lows<-join(lows1, lows2)
+```
+# Use rbind to concatonate the low, medium, and high data back together
+Now you have a dataset that is matched to the low group with equal group sizes.
+```{r}
+test<-rbind(lows, mediums)
+test2<-rbind(test, highs)
+summary(test2$ssb_group)
+```
+
+```{r}
+library(psych)
+describeBy(test2$bmi_perc, test2$ssb_group)
+```
+
+
+```{r}
+head(test2)
+#write.table(test2, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched1.csv",  row.names = FALSE, sep = ",")
+
+#rewrote in a different file
+write.table(test2, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024/data/matched2.csv)",  row.names = FALSE, sep = ",")
+```
+
+```{r}
+hist(test2$bkfs_soda, main = "Distribution of soda per day \nn=1449 (soda intake groups matched on age, bmi% and household income)")
+```
+
+# Save the plot file
+For some reason, it doesn't want to write to the lab OneDrive, so I saved it locally and then copied
+```{r}
+png(filename=r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\Scripts\0_Working\outputs\distribution_soda_per_day.png)")
+hist(test2$bkfs_soda, main = "Distribution of soda per day \nn=1449 (soda intake groups matched on \nage, bmi% and household income)")
+dev.off()
+```
+
+
+```{r}
+#save.image(file = r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\scripts\Scripts_Yana\Final_cleaning_data_scripts/matchedEnviro.RData)")
+```
+
+```{r}
+load( "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matchedEnviroFINALwithAdditional.RData")
+#load(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\scripts\Scripts_Yana\Final_cleaning_data_scripts/matchedEnviro.RData)")
+```
+
+#11/14/24
+Checking for ADHD, neurological condition, type 1 diabetes, muscle dystrophy, schizophrenia, autism
+abcd_screen01
+- ADHD (scrn_commondx)
+- scrn_cpalsy
+- scrn_tumor
+- scrn_stroke
+- scrn_aneurysm
+- scrn_hemorrhage
+- scrn_hemotoma
+- scrn_medcond_other
+- scrn_medcond_other
+- scrn_asd
+- scrn_schiz
+
+abcd_mx01
+- diabetes  (medhx_2g)
+- MD (medhx_2l)
+```{r}
+screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
+
+```
+
+```{r}
+head(screen_data)
+```
+```{r}
+head(test2)
+```
+```{r}
+result <- test2 %>%
+  inner_join(screen_data, by = "subjectkey")
+```
+- ADHD (scrn_commondx)
+- scrn_cpalsy n = 2
+- scrn_tumor
+- scrn_stroke
+- scrn_aneurysm
+- scrn_hemorrhage n = 2
+- scrn_hemotoma 
+- scrn_medcond_other n = 121
+
+- scrn_asd 1 = 98
+- scrn_schiz1= 2
+
+```{r}
+names(result)
+summary(as.factor(result$scrn_medcond_other))
+```
+
+```{r}
+result2 <-subset(result, result$scrn_cpalsy != 0)
+result3 <- subset(result2, result2$scrn_hemorrhage != 0)
+result4 <- subset(result3, result3$scrn_medcond_other != 1)
+result5 <- subset(result4, result4$scrn_asd != 1)
+result6 <- subset(result5, result5$scrn_schiz != 1)
+describeBy(result6$bmi_perc, result6$ssb_group)
+```
+```{r}
+
+```
+
