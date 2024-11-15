@@ -19,8 +19,8 @@ I am unable to get your code generate results (it just becomes blank). I think p
 # Read in all the data at the same time
 ```{r}
 # soda_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_bkfs01.txt")
-# anthro_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_ant01.txt")
-# demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/pdem02.txt")
+anthro_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_ant01.txt")
+demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/pdem02.txt")
 # brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
 # subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
 
@@ -34,6 +34,7 @@ subcort_brain_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab -
 anthro_data_2 <- read.csv(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\SSRT_data.csv)")[ ,c('src_subject_id', "race_ethnicity", "household.income.bl", "event_name")]
 #read necessary columns only
 ```
+demo_comb_income_v2
 
 # Create a quick data dict
 ```{r}
@@ -56,13 +57,76 @@ soda_data <- soda_data[soda_data$eventname == '2_year_follow_up_y_arm_1',]
 brain_data <- brain_data[brain_data$eventname == 'baseline_year_1_arm_1',]
 demo_data <- demo_data[demo_data$eventname == 'baseline_year_1_arm_1',]
 subcort_brain_data <- subcort_brain_data[subcort_brain_data$eventname == 'baseline_year_1_arm_1',]
-anthro_data_2 <- anthro_data_2[anthro_data_2$event_name == 'baseline_year_1_arm_1',]
+anthro_data <- anthro_data[anthro_data$eventname == 'baseline_year_1_arm_1',]
+names(demo_data)
+```
+demographics of interest
+```{r}
+demos<-c("subjectkey", "sex", "interview_age", "demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",          "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15", "demo_race_a_p___16", "demo_race_a_p___17",         
+ "demo_race_a_p___18", "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21", "demo_race_a_p___22",  "demo_race_a_p___23", "demo_race_a_p___24", "demo_comb_income_v2") 
+demo_df<-demo_data[demos]
+head(demo_df)
+columns_to_sum <- c("demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",
+                    "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15",
+                    "demo_race_a_p___16", "demo_race_a_p___17", "demo_race_a_p___18",
+                    "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21",
+                    "demo_race_a_p___22", "demo_race_a_p___23", "demo_race_a_p___24")
+
+# Convert specified columns to numeric
+demo_df[columns_to_sum] <- lapply(demo_df[columns_to_sum], as.numeric)
+
+# Calculate the sum across the specified columns for each row
+demo_df$row_sum <- rowSums(demo_df[, columns_to_sum], na.rm = TRUE)
+summary(as.factor(demo_df$row_sum))
+demo_df$multiRacial <- ifelse(demo_df$row_sum > 1, 1, 0)
+summary(as.factor(demo_df$multiRacial))
+multi<-subset(demo_df, demo_df$multiRacial == 1)
+multi$race<-multi$multiRacial*16
+multi
+##################################################
+single<-subset(demo_df, demo_df$multiRacial == 0)
+#1 = white
+single$race_white<-single$demo_race_a_p___10*1
+#2 = black
+single$race_black<-single$demo_race_a_p___11*2
+#3 = native american
+single$race_AmIn<-single$demo_race_a_p___12*3
+#4 = native alaska
+single$race_NaAl<-single$demo_race_a_p___13*4
+#5 = native hawaiian
+single$race_NaHi<-single$demo_race_a_p___14*5
+#6 = guam
+single$race_guam<-single$demo_race_a_p___15*6
+#7 = samoa
+single$race_samoa<-single$demo_race_a_p___16*7
+#8 = PI
+single$race_PI<-single$demo_race_a_p___17*8
+#9 = IndianAsian
+single$race_AIndian<-single$demo_race_a_p___18*9
+#10 = Chinese
+single$race_Chinese<-single$demo_race_a_p___19*10
+#11 = Filipino
+single$race_Filipino<-single$demo_race_a_p___20*11
+#12 = Japanese
+single$race_Japanese<-single$demo_race_a_p___21*12
+#13 = Korean
+single$race_Korean<-single$demo_race_a_p___22*13
+#14 = Viet
+single$race_Viet<-single$demo_race_a_p___23*14
+#15 = OtherAsian
+single$race_OAsian<-single$demo_race_a_p___24*15
+names(single)
+sumagain<-c("race_white", "race_black", "race_AmIn", "race_NaAl", "race_NaHi", "race_guam", "race_samoa", "race_PI", "race_AIndian", "race_Filipino", "race_Chinese",  "race_Japanese", "race_Korean", "race_Viet","race_OAsian")
+single$race <- rowSums(single[, sumagain], na.rm = TRUE)
+summary(as.factor(single$race))
+
 ```
 
 # Get columns of interest
 
 ```{r}
 names(anthro_data)
+demo_interest
 soda_interest<-c("subjectkey", "sex", "bkfs_soda")
 anthro_interest<-c("subjectkey", "sex", "interview_age", "anthroheightcalc", "anthroweight1lb", "anthroweight2lb", "anthroweight3lb")
 #anthro_interest<-c("")
@@ -87,38 +151,6 @@ names(anthro_data_2)[names(anthro_data_2) == 'src_subject_id'] <- 'subjectkey'
 df0.3<-join(df0.2, anthro_data_2)
 head(df0.3)
 DF<-df0.3
-```
-
-#Drop missing values
-```{r}
-DF<-DF[complete.cases(DF), ]
-```
-
-#Find the class of all columns and then cast columns as factors or numeric as needed
-Why the factoring does not work? It keeps appearing as a character.
-
-```{r}
-sapply(DF, class)
-colnames(DF)
-DF[,c(1,2,425:427)]<-sapply(DF[,c(1,2,425:427)], as.factor)
-DF[,c(3:424)]<-sapply(DF[,c(3:424)], as.numeric)
-```
-# Test making income a ranked factor (works okay)
-
-```{r}
-# Cast the income as ordinal variables with the given levels
-income_df <- DF
-summary(as.factor(income_df$household.income.bl))
-
-income_df$household.income.bl <- factor(income_df$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
-```
-
-# Releveling income at DF
-
-```{r}
-summary(as.factor(DF$household.income.bl))
-
-DF$household.income.bl <- factor(DF$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
 ```
 
 
@@ -158,17 +190,78 @@ DF$bmi_perc <- childsds::sds(DF$BMI,
 DF$bmi_perc
 ```
 # remove exlcusion criteria (added 11/14/24)
+```{r}
+DF<-join(DF, screen_data)
+```
+- ADHD (scrn_commondx)
+- scrn_cpalsy n = 2
+- scrn_tumor
+- scrn_stroke
+- scrn_aneurysm
+- scrn_hemorrhage n = 2
+- scrn_hemotoma 
+- scrn_medcond_other n = 121
+
+- scrn_asd 1 = 98
+- scrn_schiz1= 2
+
+```{r}
+DF1 <-subset(DF, DF$scrn_cpalsy != 0)
+DF2 <- subset(DF1, DF1$scrn_hemorrhage != 0)
+DF3 <- subset(DF2, DF2$scrn_medcond_other != 1)
+DF4 <- subset(DF3, DF3$scrn_asd != 1)
+DF5 <- subset(DF4, DF4$scrn_schiz != 1)
+DF<-DF5
+```
+
+```{r}
+names(DF)
+```
+
+#Drop missing values
+```{r}
+DF<-DF[complete.cases(DF), ]
+```
+
+#Find the class of all columns and then cast columns as factors or numeric as needed
+Why the factoring does not work? It keeps appearing as a character.
+
+```{r}
+sapply(DF, class)
+colnames(DF)
+DF[,c(1,2,425:427)]<-sapply(DF[,c(1,2,425:427)], as.factor)
+DF[,c(3:424)]<-sapply(DF[,c(3:424)], as.numeric)
+```
+# Test making income a ranked factor (works okay)
+
+```{r}
+# Cast the income as ordinal variables with the given levels
+income_df <- DF
+summary(as.factor(income_df$household.income.bl))
+
+income_df$household.income.bl <- factor(income_df$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
+```
+
+# Releveling income at DF
+
+```{r}
+summary(as.factor(DF$household.income.bl))
+
+DF$household.income.bl <- factor(DF$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
+```
 
 
 
 # Create high vs low, and low vs. medium datasets
 Since low will be the reference group, we want to match based on the reference group
+# we don't need medium
+I am going to comment this out
 ```{r}
 DFhigh_low<-subset(DF, DF$ssb_group != "medium")
-DFmedium_low<-subset(DF, DF$ssb_group != "high")
+#DFmedium_low<-subset(DF, DF$ssb_group != "high")
 
 DFhigh_low$ssb_group<-factor(DFhigh_low$ssb_group)
-DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
+#DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
 
 ```
 
@@ -176,21 +269,21 @@ DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
 ```{r}
 m.out0 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFhigh_low,
                  method = NULL, distance = "glm")
-m.out0.1 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFmedium_low,
-                 method = NULL, distance = "glm")
+#m.out0.1 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFmedium_low,
+#                 method = NULL, distance = "glm")
 
 ```
 
 ```{r}
-summary(m.out0.1)
+summary(m.out0)
 ```
 # Perform matching using nearest neightbor (it works OK)
 ```{r}
 m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFhigh_low,
                  method = "nearest", distance = "glm")
 
-m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
-                 method = "nearest", distance = "glm")
+#m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
+#                 method = "nearest", distance = "glm")
 
 ```
 
