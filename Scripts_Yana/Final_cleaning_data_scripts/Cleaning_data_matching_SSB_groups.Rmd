@@ -18,21 +18,12 @@ I am unable to get your code generate results (it just becomes blank). I think p
 
 # Read in all the data at the same time
 ```{r}
-# soda_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_bkfs01.txt")
+soda_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_bkfs01.txt")
 anthro_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_ant01.txt")
 demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/pdem02.txt")
-# brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
-# subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
-
-
-soda_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\abcd_bkfs01.txt)")
-anthro_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\abcd_ant01.txt)")
-demo_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/pdem02.txt)")
-brain_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/abcd_betnet02.txt)")
-subcort_brain_data <-vroom(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw/mrirscor02.txt)")
-
-anthro_data_2 <- read.csv(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\data\raw\SSRT_data.csv)")[ ,c('src_subject_id', "race_ethnicity", "household.income.bl", "event_name")]
-#read necessary columns only
+brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
+subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
+screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
 ```
 demo_comb_income_v2
 
@@ -115,12 +106,29 @@ single$race_Korean<-single$demo_race_a_p___22*13
 single$race_Viet<-single$demo_race_a_p___23*14
 #15 = OtherAsian
 single$race_OAsian<-single$demo_race_a_p___24*15
-names(single)
+
 sumagain<-c("race_white", "race_black", "race_AmIn", "race_NaAl", "race_NaHi", "race_guam", "race_samoa", "race_PI", "race_AIndian", "race_Filipino", "race_Chinese",  "race_Japanese", "race_Korean", "race_Viet","race_OAsian")
 single$race <- rowSums(single[, sumagain], na.rm = TRUE)
-summary(as.factor(single$race))
+```
+Drop extra columns
+```{r}
+# Drop specific columns by name
+single <- single %>%
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -demo_comb_income_v2, -row_sum, -multiRacial, -race_white, -race_black, -race_AmIn, -race_NaAl, -race_NaHi, -race_guam, -race_samoa, -race_PI, -race_AIndian, -race_Filipino, -race_Chinese, -race_Japanese, -race_Korean, -race_Viet, -race_OAsian)
+```
+```{r}
+names(multi)
+multi <- multi %>%
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -demo_comb_income_v2, -row_sum, -multiRacial)
+```
+```{r}
+race_df<-rbind(single, multi)
+```
+
+```{r}
 
 ```
+
 
 # Get columns of interest
 
