@@ -104,7 +104,7 @@ screen_med_df<-screen_med_data8
 ```
 
 ```{r}
-save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/screening.RData")
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/screening.RData")
 ```
 
 
@@ -202,7 +202,7 @@ summary(as.factor(DEMOS_df$demo_comb_income_v2))
 ```
 
 ```{r}
-save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/demos.RData")
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/demos.RData")
 ```
 
 ```{r}
@@ -240,7 +240,7 @@ DF<-df0.3
 ```
 
 ```{r}
-save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/combDF.RData")
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/combDF.RData")
 ```
 
 
@@ -297,7 +297,7 @@ summary(DF$bmi_perc)
 DF<-subset(DF, DF$bmi_perc>.05)
 ```
 ```{r}
-save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
 ```
 
 ```{r}
@@ -325,7 +325,7 @@ View(intDF)
 ```
 
 ```{r}
-save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
 ```
 # Create high vs low, and low vs. medium datasets
 Since low will be the reference group, we want to match based on the reference group
@@ -368,69 +368,22 @@ highLow_DF <- match.data(m.out_highLow)
 summary(m.out_highLow)
 ```
 
-# Subset the matched datasets into lows, mediums, and highs
-```{r}
-lows1<-subset(highLow_DF, highLow_DF$ssb_group == "low")
-lows2<-subset(mediumLow_DF, mediumLow_DF$ssb_group == "low")
-medium <-subset(mediumLow_DF, mediumLow_DF$ssb_group  != "low")
-highs <-subset(highLow_DF, highLow_DF$ssb_group   != "low")
-```
-
-# We have more medium than low and high. Since we already matched them we can randomly select rows so that we have the same number in the medium group
 
 
 ```{r}
-set.seed(123) # Setting a seed for reproducibility
-mediums <- medium[sample(nrow(medium), 483), ] #was 513 in Grace's version, changed to 483 cuz now we have less lows&highs
-```
-
-# Join the low groups so we have the lows that match both the medium and high groups
-```{r}
-lows<-join(lows1, lows2)
-```
-# Use rbind to concatonate the low, medium, and high data back together
-Now you have a dataset that is matched to the low group with equal group sizes.
-```{r}
-test<-rbind(lows, mediums)
-test2<-rbind(test, highs)
-summary(test2$ssb_group)
+#write.table(highLow_DF, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724.csv",  row.names = FALSE, sep = ",")
 ```
 
 ```{r}
-library(psych)
-describeBy(test2$bmi_perc, test2$ssb_group)
+hist(highLow_DF$bkfs_soda, main = "Distribution of soda per day \nn=1568 (soda intake groups matched on age, bmi% and household income)")
 ```
+
 
 
 ```{r}
-head(test2)
-#write.table(test2, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched1.csv",  row.names = FALSE, sep = ",")
-
-#rewrote in a different file
-write.table(test2, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024/data/matched2.csv)",  row.names = FALSE, sep = ",")
+#save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
 ```
 
-```{r}
-hist(test2$bkfs_soda, main = "Distribution of soda per day \nn=1449 (soda intake groups matched on age, bmi% and household income)")
-```
-
-# Save the plot file
-For some reason, it doesn't want to write to the lab OneDrive, so I saved it locally and then copied
-```{r}
-png(filename=r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\Scripts\0_Working\outputs\distribution_soda_per_day.png)")
-hist(test2$bkfs_soda, main = "Distribution of soda per day \nn=1449 (soda intake groups matched on \nage, bmi% and household income)")
-dev.off()
-```
-
-
-```{r}
-#save.image(file = r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\scripts\Scripts_Yana\Final_cleaning_data_scripts/matchedEnviro.RData)")
-```
-
-```{r}
-load( "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matchedEnviroFINALwithAdditional.RData")
-#load(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\scripts\Scripts_Yana\Final_cleaning_data_scripts/matchedEnviro.RData)")
-```
 
 
 
