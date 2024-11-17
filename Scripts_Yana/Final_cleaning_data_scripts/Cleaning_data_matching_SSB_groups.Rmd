@@ -198,6 +198,7 @@ multi <- multi %>%
 ```
 ```{r}
 DEMOS_df<-rbind(single, multi)
+summary(as.factor(DEMOS_df$demo_comb_income_v2))
 ```
 
 ```{r}
@@ -205,7 +206,9 @@ save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyomi
 ```
 
 ```{r}
-screen_med_demo_df<-join(screen_med_df, DEMOS_df)
+# Perform the join explicitly on "subjectkey"
+screen_med_demo_df <- screen_med_df %>%
+  inner_join(DEMOS_df, by = "subjectkey")
 ```
 
 
@@ -228,11 +231,16 @@ subcort_df<-subcort_brain_data[,subcort_interest]
 df0<-join(soda_df, anthro_df)
 df0.1<-join(df0,brain_df)
 df0.2<-join(df0.1,subcort_df)
-#renaming the ID column, otherwise it won't be able to join
-#names(anthro_data_2)[names(anthro_data_2) == 'src_subject_id'] <- 'subjectkey'
-#df0.3<-join(df0.2, anthro_data_2)
-#head(df0.3)
-#DF<-df0.3
+
+# Perform the join explicitly on "subjectkey"
+df0.3 <- screen_med_demo_df %>%
+  inner_join(df0.2, by = "subjectkey")
+
+DF<-df0.3
+```
+
+```{r}
+save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/combDF.RData")
 ```
 
 
@@ -243,15 +251,27 @@ If I keep the bottom at 0, it says the breaks are incorrect.
 It's okay to use -Inf here since the minimum is 0.
 
 ```{r}
-summary(DF$bkfs_soda)
+DF<-subset(DF, DF$bkfs_soda != "777")
+DF$bkfs_soda<-as.numeric(DF$bkfs_soda)
 DF$ssb_group <- cut(DF$bkfs_soda,
-                          breaks=c(-Inf, 0, 2, 10), 
+                          breaks=c(-Inf, 0, 2, Inf), 
                           labels=c('low', 'medium', 'high'))
+summary(as.factor(DF$ssb_group))
+```
+
+
+```{r}
+DF$anthroweight1lb<-as.numeric(DF$anthroweight1lb)
+DF$anthroweight2lb<-as.numeric(DF$anthroweight2lb)
+DF$anthroweight3lb<-as.numeric(DF$anthroweight3lb)
+DF$anthroheightcalc<-as.numeric(DF$anthroheightcalc)
+DF$interview_age<-as.numeric(DF$interview_age)
 ```
 
 # Get the mean weight
 ```{r}
 DF$anthroweightcalc <- apply(X=DF[c("anthroweight1lb","anthroweight2lb", "anthroweight3lb")], MARGIN=1, FUN=mean, na.rm=TRUE)
+DF$anthroweightcalc
 ```
 
 
@@ -259,6 +279,9 @@ DF$anthroweightcalc <- apply(X=DF[c("anthroweight1lb","anthroweight2lb", "anthro
 ```{r}
 DF$BMI<-(DF$anthroweightcalc/(DF$anthroheightcalc)^2)*703
 DF$age_years<-DF$interview_age/12
+summary(DF$BMI)
+# Drop rows where column A has NA
+DF <- DF[!is.na(DF$BMI), ]
 ```
 
 # Calculate BMI%
@@ -269,82 +292,52 @@ DF$bmi_perc <- childsds::sds(DF$BMI,
                     ref = cdc.ref,
                     item = "bmi",
                     type = "perc")
-DF$bmi_perc
+summary(DF$bmi_perc)
+# filter out underweight children
+DF<-subset(DF, DF$bmi_perc>.05)
 ```
-# remove exlcusion criteria (added 11/14/24)
 ```{r}
-DF<-join(DF, screen_data)
-```
-- ADHD (scrn_commondx)
-- scrn_cpalsy n = 2
-- scrn_tumor
-- scrn_stroke
-- scrn_aneurysm
-- scrn_hemorrhage n = 2
-- scrn_hemotoma 
-- scrn_medcond_other n = 121
-
-- scrn_asd 1 = 98
-- scrn_schiz1= 2
-
-```{r}
-DF1 <-subset(DF, DF$scrn_cpalsy != 0)
-DF2 <- subset(DF1, DF1$scrn_hemorrhage != 0)
-DF3 <- subset(DF2, DF2$scrn_medcond_other != 1)
-DF4 <- subset(DF3, DF3$scrn_asd != 1)
-DF5 <- subset(DF4, DF4$scrn_schiz != 1)
-DF<-DF5
+save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
 ```
 
 ```{r}
 names(DF)
+intDF <- DF[, c(1:5, 168:597)]
+# Drop multiple columns by name
+intDF <- intDF[, !names(intDF) %in% c("anthroweight1lb", "anthroweight2lb", "anthroweight3lb")]
 ```
 
 #Drop missing values
 ```{r}
-DF<-DF[complete.cases(DF), ]
+intDF<-intDF[complete.cases(intDF), ]
 ```
 
 #Find the class of all columns and then cast columns as factors or numeric as needed
 Why the factoring does not work? It keeps appearing as a character.
 
 ```{r}
-sapply(DF, class)
-colnames(DF)
-DF[,c(1,2,425:427)]<-sapply(DF[,c(1,2,425:427)], as.factor)
-DF[,c(3:424)]<-sapply(DF[,c(3:424)], as.numeric)
+intDF$demo_comb_income_v2
+sapply(intDF, class)
+colnames(intDF)
+intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
+intDF[,c(9:427, 429:432)]<-sapply(intDF[,c(9:427, 429:432)], as.numeric)
+View(intDF)
 ```
-# Test making income a ranked factor (works okay)
 
 ```{r}
-# Cast the income as ordinal variables with the given levels
-income_df <- DF
-summary(as.factor(income_df$household.income.bl))
-
-income_df$household.income.bl <- factor(income_df$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
+save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
 ```
-
-# Releveling income at DF
-
-```{r}
-summary(as.factor(DF$household.income.bl))
-
-DF$household.income.bl <- factor(DF$household.income.bl, levels = c("[<50K]", "[>=100K]", "[>=50K & <100K]"))
-```
-
-
-
 # Create high vs low, and low vs. medium datasets
 Since low will be the reference group, we want to match based on the reference group
 # we don't need medium
 I am going to comment this out
 ```{r}
-DFhigh_low<-subset(DF, DF$ssb_group != "medium")
+DFhigh_low<-subset(intDF, intDF$ssb_group != "medium")
 #DFmedium_low<-subset(DF, DF$ssb_group != "high")
 
 DFhigh_low$ssb_group<-factor(DFhigh_low$ssb_group)
 #DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
-
+names(DFhigh_low)
 ```
 
 # Perform initial matching with null to get an idea of differences
@@ -361,7 +354,7 @@ summary(m.out0)
 ```
 # Perform matching using nearest neightbor (it works OK)
 ```{r}
-m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFhigh_low,
+m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + demo_comb_income_v2, data = DFhigh_low,
                  method = "nearest", distance = "glm")
 
 #m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
@@ -372,8 +365,7 @@ m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl,
 # Get dataset from matched output
 ```{r}
 highLow_DF <- match.data(m.out_highLow)
-
-mediumLow_DF <- match.data(m.out_mediumLow)
+summary(m.out_highLow)
 ```
 
 # Subset the matched datasets into lows, mediums, and highs
