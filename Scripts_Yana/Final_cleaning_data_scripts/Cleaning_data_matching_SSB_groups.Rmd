@@ -27,7 +27,6 @@ screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Doc
 med_data<-vroom("/Users/gracer/Library/CloudStorage/GoogleDrive-graceshearrer@gmail.com/Other computers/UNC_iMac/Desktop/ABCD_RELEASE_1/abcd_mx01.txt")
 med_data <- med_data[-1, ]
 ```
-demo_comb_income_v2
 
 # Create a quick data dict
 ```{r}
@@ -120,7 +119,15 @@ demo_data <- demo_data[demo_data$eventname == 'baseline_year_1_arm_1',]
 subcort_brain_data <- subcort_brain_data[subcort_brain_data$eventname == 'baseline_year_1_arm_1',]
 anthro_data <- anthro_data[anthro_data$eventname == 'baseline_year_1_arm_1',]
 ```
-demographics of interest
+
+# demographics of interest
+household income
+1= Less than $5,000; 2=$5,000 through $11,999; 3=$12,000 through $15,999; 4=$16,000 through $24,999; 5=$25,000 through $34,999; 6=$35,000 through $49,999; 7=$50,000 through $74,999; 8= $75,000 through $99,999; 9=$100,000 through $199,999; 10=$200,000 and greater. 999 = Don't know  777 = Refuse to answer 
+```{r}
+demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "777")
+demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "999")
+```
+
 ```{r}
 demos<-c("subjectkey", "sex", "interview_age", "demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",          "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15", "demo_race_a_p___16", "demo_race_a_p___17",         
  "demo_race_a_p___18", "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21", "demo_race_a_p___22",  "demo_race_a_p___23", "demo_race_a_p___24", "demo_comb_income_v2") 
@@ -142,7 +149,6 @@ demo_df$multiRacial <- ifelse(demo_df$row_sum > 1, 1, 0)
 summary(as.factor(demo_df$multiRacial))
 multi<-subset(demo_df, demo_df$multiRacial == 1)
 multi$race<-multi$multiRacial*16
-multi
 ##################################################
 single<-subset(demo_df, demo_df$multiRacial == 0)
 #1 = white
@@ -183,30 +189,30 @@ Drop extra columns
 ```{r}
 # Drop specific columns by name
 single <- single %>%
-  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -demo_comb_income_v2, -row_sum, -multiRacial, -race_white, -race_black, -race_AmIn, -race_NaAl, -race_NaHi, -race_guam, -race_samoa, -race_PI, -race_AIndian, -race_Filipino, -race_Chinese, -race_Japanese, -race_Korean, -race_Viet, -race_OAsian)
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -row_sum, -multiRacial, -race_white, -race_black, -race_AmIn, -race_NaAl, -race_NaHi, -race_guam, -race_samoa, -race_PI, -race_AIndian, -race_Filipino, -race_Chinese, -race_Japanese, -race_Korean, -race_Viet, -race_OAsian)
 ```
 ```{r}
 names(multi)
 multi <- multi %>%
-  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -demo_comb_income_v2, -row_sum, -multiRacial)
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24,  -row_sum, -multiRacial)
 ```
 ```{r}
-race_df<-rbind(single, multi)
+DEMOS_df<-rbind(single, multi)
 ```
 
 ```{r}
+save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/demos.RData")
+```
 
+```{r}
+screen_med_demo_df<-join(screen_med_df, DEMOS_df)
 ```
 
 
 # Get columns of interest
-
 ```{r}
-names(anthro_data)
-demo_interest
 soda_interest<-c("subjectkey", "sex", "bkfs_soda")
 anthro_interest<-c("subjectkey", "sex", "interview_age", "anthroheightcalc", "anthroweight1lb", "anthroweight2lb", "anthroweight3lb")
-#anthro_interest<-c("")
 brain_interest<-c(4,8,23:191)
 subcort_interest<-c(4,8,23:269)
 #subset
@@ -214,7 +220,6 @@ soda_df<-soda_data[soda_interest]
 anthro_df<-anthro_data[anthro_interest]
 brain_df<-brain_data[,brain_interest]
 subcort_df<-subcort_brain_data[,subcort_interest]
-subcort_df
 ```
 
 
@@ -224,10 +229,10 @@ df0<-join(soda_df, anthro_df)
 df0.1<-join(df0,brain_df)
 df0.2<-join(df0.1,subcort_df)
 #renaming the ID column, otherwise it won't be able to join
-names(anthro_data_2)[names(anthro_data_2) == 'src_subject_id'] <- 'subjectkey'
-df0.3<-join(df0.2, anthro_data_2)
-head(df0.3)
-DF<-df0.3
+#names(anthro_data_2)[names(anthro_data_2) == 'src_subject_id'] <- 'subjectkey'
+#df0.3<-join(df0.2, anthro_data_2)
+#head(df0.3)
+#DF<-df0.3
 ```
 
 
@@ -435,65 +440,5 @@ load( "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2
 #load(r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024\scripts\Scripts_Yana\Final_cleaning_data_scripts/matchedEnviro.RData)")
 ```
 
-#11/14/24
-Checking for ADHD, neurological condition, type 1 diabetes, muscle dystrophy, schizophrenia, autism
-abcd_screen01
-- ADHD (scrn_commondx)
-- scrn_cpalsy
-- scrn_tumor
-- scrn_stroke
-- scrn_aneurysm
-- scrn_hemorrhage
-- scrn_hemotoma
-- scrn_medcond_other
-- scrn_medcond_other
-- scrn_asd
-- scrn_schiz
 
-abcd_mx01
-- diabetes  (medhx_2g)
-- MD (medhx_2l)
-```{r}
-screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
-
-```
-
-```{r}
-head(screen_data)
-```
-```{r}
-head(test2)
-```
-```{r}
-result <- test2 %>%
-  inner_join(screen_data, by = "subjectkey")
-```
-- ADHD (scrn_commondx)
-- scrn_cpalsy n = 2
-- scrn_tumor
-- scrn_stroke
-- scrn_aneurysm
-- scrn_hemorrhage n = 2
-- scrn_hemotoma 
-- scrn_medcond_other n = 121
-
-- scrn_asd 1 = 98
-- scrn_schiz1= 2
-
-```{r}
-names(result)
-summary(as.factor(result$scrn_medcond_other))
-```
-
-```{r}
-result2 <-subset(result, result$scrn_cpalsy != 0)
-result3 <- subset(result2, result2$scrn_hemorrhage != 0)
-result4 <- subset(result3, result3$scrn_medcond_other != 1)
-result5 <- subset(result4, result4$scrn_asd != 1)
-result6 <- subset(result5, result5$scrn_schiz != 1)
-describeBy(result6$bmi_perc, result6$ssb_group)
-```
-```{r}
-
-```
 
