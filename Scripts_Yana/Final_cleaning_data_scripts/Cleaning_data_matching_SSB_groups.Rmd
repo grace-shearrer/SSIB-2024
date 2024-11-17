@@ -24,6 +24,8 @@ demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Docum
 brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
 subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
 screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
+med_data<-vroom("/Users/gracer/Library/CloudStorage/GoogleDrive-graceshearrer@gmail.com/Other computers/UNC_iMac/Desktop/ABCD_RELEASE_1/abcd_mx01.txt")
+med_data <- med_data[-1, ]
 ```
 demo_comb_income_v2
 
@@ -40,6 +42,74 @@ write.table(DT, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\
 
 ```
 
+# First screen on obvious 
+## Start n = 11875
+Checking for ADHD, neurological condition, type 1 diabetes, muscle dystrophy, schizophrenia, autism
+abcd_screen01
+- scrn_cpalsy
+-- n = 11867
+- scrn_hemorrhage
+-- n = 11863
+- scrn_medcond_other
+-- n = 11626
+- scrn_asd
+-- n = 11400
+- scrn_schiz
+-- 11397
+- scrn_tumor
+-- 11395
+- scrn_stroke
+- scrn_aneurysm
+- scrn_hemorrhage
+- scrn_hemotoma
+- scrn_medcond_other
+- scrn_schiz
+
+
+```{r}
+screen_data1 <-subset(screen_data, screen_data$scrn_cpalsy != 0)
+screen_data2 <- subset(screen_data1, screen_data1$scrn_hemorrhage != 0)
+screen_data3 <- subset(screen_data2, screen_data2$scrn_medcond_other != 1)
+screen_data4 <- subset(screen_data3, screen_data3$scrn_asd != 1)
+screen_data5 <- subset(screen_data4, screen_data4$scrn_schiz != 1)
+screen_data6 <- subset(screen_data5, screen_data5$scrn_tumor != 0)
+screen_data7 <- subset(screen_data6, screen_data6$scrn_stroke != 0)
+screen_data8 <- subset(screen_data7, screen_data7$scrn_aneurysm != 0)
+screen_data9 <- subset(screen_data8, screen_data8$scrn_hemotoma != 0)
+screen_data10 <- subset(screen_data9, screen_data9$scrn_medcond_other != 1)
+screen_df<-screen_data10
+```
+abcd_mx01
+- MusDys medhx_2l
+- MS medhx_2m
+- medhx_2k lead poisoning
+- kidney disease medhx_2j
+- cancer medhx_2e
+- medhx_2g diabetes
+- cere pals medhx_2f
+- medhx_2o heart
+```{r}
+med_data <- med_data[med_data$eventname == 'baseline_year_1_arm_1',]
+screen_med_data<-join(med_data, screen_df)
+####
+summary(as.factor(screen_med_data$medhx_2o))
+screen_med_data1<-subset(screen_med_data, screen_med_data$medhx_2l != 1)
+screen_med_data2<-subset(screen_med_data1, screen_med_data1$medhx_2m != 1)
+screen_med_data3<-subset(screen_med_data2, screen_med_data2$medhx_2k != 1)
+screen_med_data4<-subset(screen_med_data3, screen_med_data3$medhx_2j != 1)
+screen_med_data5<-subset(screen_med_data4, screen_med_data4$medhx_2e != 1)
+screen_med_data6<-subset(screen_med_data5, screen_med_data5$medhx_2g != 1)
+screen_med_data7<-subset(screen_med_data6, screen_med_data6$medhx_2f != 1)
+screen_med_data8<-subset(screen_med_data7, screen_med_data7$medhx_2o != 1)
+screen_med_df<-screen_med_data8
+```
+
+```{r}
+save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/screening.RData")
+```
+
+
+
 
 # Filter by event then drop event column
 We are going to try to predict the SSB intake from the baseline data so we want baseline for the brain data
@@ -49,7 +119,6 @@ brain_data <- brain_data[brain_data$eventname == 'baseline_year_1_arm_1',]
 demo_data <- demo_data[demo_data$eventname == 'baseline_year_1_arm_1',]
 subcort_brain_data <- subcort_brain_data[subcort_brain_data$eventname == 'baseline_year_1_arm_1',]
 anthro_data <- anthro_data[anthro_data$eventname == 'baseline_year_1_arm_1',]
-names(demo_data)
 ```
 demographics of interest
 ```{r}
