@@ -24,7 +24,8 @@ demo_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Docum
 brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_betnet02.txt")
 subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
 screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
-med_data<-vroom("/Users/gracer/Library/CloudStorage/GoogleDrive-graceshearrer@gmail.com/Other computers/UNC_iMac/Desktop/ABCD_RELEASE_1/abcd_mx01.txt")
+med_data<-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_mx01.txt")
+#med_data<-vroom("/Users/gracer/Library/CloudStorage/GoogleDrive-graceshearrer@gmail.com/Other computers/UNC_iMac/Desktop/ABCD_RELEASE_1/abcd_mx01.txt")
 med_data <- med_data[-1, ]
 ```
 
@@ -76,7 +77,7 @@ screen_data7 <- subset(screen_data6, screen_data6$scrn_stroke != 0)
 screen_data8 <- subset(screen_data7, screen_data7$scrn_aneurysm != 0)
 screen_data9 <- subset(screen_data8, screen_data8$scrn_hemotoma != 0)
 screen_data10 <- subset(screen_data9, screen_data9$scrn_medcond_other != 1)
-screen_df<-screen_data10
+screen_df<-screen_data10 #11391
 ```
 abcd_mx01
 - MusDys medhx_2l
@@ -100,7 +101,7 @@ screen_med_data5<-subset(screen_med_data4, screen_med_data4$medhx_2e != 1)
 screen_med_data6<-subset(screen_med_data5, screen_med_data5$medhx_2g != 1)
 screen_med_data7<-subset(screen_med_data6, screen_med_data6$medhx_2f != 1)
 screen_med_data8<-subset(screen_med_data7, screen_med_data7$medhx_2o != 1)
-screen_med_df<-screen_med_data8
+screen_med_df<-screen_med_data8 #11364
 ```
 
 ```{r}
@@ -127,7 +128,7 @@ household income
 demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "777")
 demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "999")
 ```
-
+#n demo data = 10321
 ```{r}
 demos<-c("subjectkey", "sex", "interview_age", "demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",          "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15", "demo_race_a_p___16", "demo_race_a_p___17",         
  "demo_race_a_p___18", "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21", "demo_race_a_p___22",  "demo_race_a_p___23", "demo_race_a_p___24", "demo_comb_income_v2") 
@@ -200,7 +201,7 @@ multi <- multi %>%
 DEMOS_df<-rbind(single, multi)
 summary(as.factor(DEMOS_df$demo_comb_income_v2))
 ```
-
+DEMOS_df 10321
 ```{r}
 #save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/demos.RData")
 ```
@@ -210,7 +211,7 @@ summary(as.factor(DEMOS_df$demo_comb_income_v2))
 screen_med_demo_df <- screen_med_df %>%
   inner_join(DEMOS_df, by = "subjectkey")
 ```
-
+screen_med_demo_df 9873
 
 # Get columns of interest
 ```{r}
@@ -238,6 +239,7 @@ df0.3 <- screen_med_demo_df %>%
 
 DF<-df0.3
 ```
+DEMOS n = 8981 
 
 ```{r}
 #save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/combDF.RData")
@@ -251,7 +253,7 @@ If I keep the bottom at 0, it says the breaks are incorrect.
 It's okay to use -Inf here since the minimum is 0.
 
 ```{r}
-DF<-subset(DF, DF$bkfs_soda != "777")
+DF<-subset(DF, DF$bkfs_soda != "777") #n = 8926
 DF$bkfs_soda<-as.numeric(DF$bkfs_soda)
 DF$ssb_group <- cut(DF$bkfs_soda,
                           breaks=c(-Inf, 0, 2, Inf), 
@@ -281,7 +283,7 @@ DF$BMI<-(DF$anthroweightcalc/(DF$anthroheightcalc)^2)*703
 DF$age_years<-DF$interview_age/12
 summary(DF$BMI)
 # Drop rows where column A has NA
-DF <- DF[!is.na(DF$BMI), ]
+DF <- DF[!is.na(DF$BMI), ] #n = 8921
 ```
 
 # Calculate BMI%
@@ -294,7 +296,7 @@ DF$bmi_perc <- childsds::sds(DF$BMI,
                     type = "perc")
 summary(DF$bmi_perc)
 # filter out underweight children
-DF<-subset(DF, DF$bmi_perc>.05)
+DF<-subset(DF, DF$bmi_perc>.05) #n = 8560
 ```
 ```{r}
 #save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
@@ -302,26 +304,23 @@ DF<-subset(DF, DF$bmi_perc>.05)
 
 ```{r}
 names(DF)
-intDF <- DF[, c(1:5, 168:597)]
+intDF <- DF[, c(1:5, 166:595)]
 # Drop multiple columns by name
-intDF <- intDF[, !names(intDF) %in% c("anthroweight1lb", "anthroweight2lb", "anthroweight3lb")]
+intDF <- intDF[, !names(intDF) %in% c("anthroweight1lb", "anthroweight2lb", "anthroweight3lb")] # n = 8560
 ```
 
 #Drop missing values
 ```{r}
-intDF<-intDF[complete.cases(intDF), ]
+intDF<-intDF[complete.cases(intDF), ] #n = 8116
 ```
 
 #Find the class of all columns and then cast columns as factors or numeric as needed
 Why the factoring does not work? It keeps appearing as a character.
 
 ```{r}
-intDF$demo_comb_income_v2
-sapply(intDF, class)
 colnames(intDF)
 intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
 intDF[,c(9:427, 429:432)]<-sapply(intDF[,c(9:427, 429:432)], as.numeric)
-View(intDF)
 ```
 
 ```{r}
@@ -332,12 +331,11 @@ Since low will be the reference group, we want to match based on the reference g
 # we don't need medium
 I am going to comment this out
 ```{r}
-DFhigh_low<-subset(intDF, intDF$ssb_group != "medium")
+DFhigh_low<-subset(intDF, intDF$ssb_group != "medium") # n = 4580
 #DFmedium_low<-subset(DF, DF$ssb_group != "high")
 
 DFhigh_low$ssb_group<-factor(DFhigh_low$ssb_group)
 #DFmedium_low$ssb_group<-factor(DFmedium_low$ssb_group)
-names(DFhigh_low)
 ```
 
 # Perform initial matching with null to get an idea of differences
@@ -371,7 +369,7 @@ summary(m.out_highLow)
 
 
 ```{r}
-#write.table(highLow_DF, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724.csv",  row.names = FALSE, sep = ",")
+write.table(highLow_DF, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724.csv",  row.names = FALSE, sep = ",")
 ```
 
 ```{r}
@@ -381,7 +379,7 @@ hist(highLow_DF$bkfs_soda, main = "Distribution of soda per day \nn=1568 (soda i
 
 
 ```{r}
-#save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
 ```
 
 
