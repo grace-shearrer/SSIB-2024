@@ -353,11 +353,16 @@ summary(m.out0)
 # Perform matching using nearest neightbor (it works OK)
 ```{r}
 m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + demo_comb_income_v2, data = DFhigh_low,
-                 method = "nearest", distance = "glm")
+                 method = "exact", distance = "glm")
 
 #m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
 #                 method = "nearest", distance = "glm")
 
+```
+
+```{r}
+summary(m.out_highLow)
+plot(m.out_highLow)
 ```
 
 # Get dataset from matched output
@@ -367,22 +372,38 @@ summary(m.out_highLow)
 ```
 
 ```{r}
-names(highLow_DF)
+names(highlow_DFbak)
+highlow_DFbak
 highlow_DFbak<-highLow_DF
 ```
 #Centering the data
 ```{r}
 colnames(intDF)
 intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
-intDF[,c(9:427, 429:432)]<-sapply(intDF[,c(9:427, 429:432)], as.numeric)
-highLow_DF[,c(9:427, 429:432)]<-scale(highLow_DF[,c(9:427, 429:432)], center = T, scale = F)
+highLow_DF[,c(6, 9:427, 429:432)]<-sapply(highLow_DF[,c(6, 9:427, 429:432)], as.numeric)
+highLow_DF[,c(6, 9:427, 429:432)]<-scale(highLow_DF[,c(6, 9:427, 429:432)], center = T, scale = F)
+head(highLow_DF)
 ## Checking the center
-round(colMeans(highLow_DF[,c(9:427, 429:432)]),2)
-sapply(highLow_DF[,c(9:427, 429:432)], sd)
+round(colMeans(highLow_DF[,c(6, 9:427, 429:432)]),2)
+sapply(highLow_DF[,c(6, 9:427, 429:432)], sd)
 ```
 
 ```{r}
-write.table(highLow_DF, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724_centered.csv",  row.names = FALSE, sep = ",")
+install.packages("fastDummies")
+library(fastDummies)
+```
+
+
+```{r}
+dummy_vars <- dummy_cols(highLow_DF, select_columns = "sex", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+View(dummy_vars)
+dummy_vars <- dummy_cols(dummy_vars, select_columns = "race", remove_first_dummy = FALSE, remove_selected_columns = TRUE)
+
+```
+
+
+```{r}
+write.table(dummy_vars, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724_centered_dum.csv",  row.names = FALSE, sep = ",")
 ```
 
 ```{r}
