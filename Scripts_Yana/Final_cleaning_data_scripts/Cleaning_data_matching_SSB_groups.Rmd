@@ -397,7 +397,6 @@ library(fastDummies)
 dummy_vars <- dummy_cols(highLow_DF, select_columns = "sex", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 View(dummy_vars)
 dummy_vars <- dummy_cols(dummy_vars, select_columns = "race", remove_first_dummy = FALSE, remove_selected_columns = TRUE)
-
 ```
 
 
@@ -432,11 +431,8 @@ https://doi.org/10.1016/j.dcn.2022.101164
 ```{r}
 df1<-vroom("/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/clean/ABCD_r.csv")
 df2<-vroom("/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/clean/ABCD_ses.csv")
-names(df1)
 ```
-```{r}
-names(df2)
-```
+
 ```{r}
 dfSES <- df1 %>%
   inner_join(df2, by = "subjectkey")
@@ -444,12 +440,7 @@ dfSES <- df1 %>%
 
 ses_fac is a computed factor score based on "Income2Needs","IncCombinedMidpoint","EdYearsHighest","EdYearsAverage"
 
-```{r}
-head(dfSES)
-```
-```{r}
-summary(as.factor(dfSES$rel_family_id))
-```
+
 # Randomly select one sibling from family 
 ```{r}
 # Randomly select one row from each level of dfSES$rel_family_id
@@ -495,6 +486,22 @@ print(df_cleaned)
 
 ```
 
+#Centering the data (again for b)
 ```{r}
-save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/DFSESnotmatch.RData")
+df_cleaned[,c("crpbi_y_ss_parent", "srpf_y_ss_ses", "basic_needs_sum", "sub_crime_sum","Income2Needs","IncCombinedMidpoint","EdYearsHighest","EdYearsAverage", "reshist_addr1_adi_wsum", "ses_fac")]<-scale(df_cleaned[,c("crpbi_y_ss_parent", "srpf_y_ss_ses", "basic_needs_sum", "sub_crime_sum","Income2Needs","IncCombinedMidpoint","EdYearsHighest","EdYearsAverage", "reshist_addr1_adi_wsum", "ses_fac")], center = T, scale = F)
+```
+
+```{r}
+df_cleaned <- dummy_cols(df_cleaned, select_columns = c("sex", "race","demo_prim","demo_prnt_prtnr_v2", "abcd_site_num"), remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+names(df_cleaned)
+```
+
+
+```{r}
+write.table(df_cleaned, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/DFSESnotmatched.csv", row.names = F, sep = ",")
+```
+
+
+```{r}
+#save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/DFSESnotmatch.RData")
 ```
