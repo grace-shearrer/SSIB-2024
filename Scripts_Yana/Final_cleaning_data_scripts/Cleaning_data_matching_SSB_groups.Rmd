@@ -25,7 +25,6 @@ brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Docu
 subcort_brain_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/mrirscor02.txt")
 screen_data <-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_screen01.txt")
 med_data<-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw/abcd_mx01.txt")
-#med_data<-vroom("/Users/gracer/Library/CloudStorage/GoogleDrive-graceshearrer@gmail.com/Other computers/UNC_iMac/Desktop/ABCD_RELEASE_1/abcd_mx01.txt")
 med_data <- med_data[-1, ]
 ```
 
@@ -413,9 +412,89 @@ hist(highLow_DF$bkfs_soda, main = "Distribution of soda per day \nn=1568 (soda i
 
 
 ```{r}
-save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+#save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+```
+
+## 11/20/24
+Household income is the most important even after matching. Now going to look at the dataset without matching but with increased household income metrics
+```{r}
+load(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+```
+
+Keep only DFhigh_low
+```{r}
+rm(list = setdiff(ls(), "DFhigh_low"))
+```
+
+# Read in additional data from the 
+https://doi.org/10.1016/j.dcn.2022.101164
+
+```{r}
+df1<-vroom("/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/clean/ABCD_r.csv")
+df2<-vroom("/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/clean/ABCD_ses.csv")
+names(df1)
+```
+```{r}
+names(df2)
+```
+```{r}
+dfSES <- df1 %>%
+  inner_join(df2, by = "subjectkey")
+```
+
+ses_fac is a computed factor score based on "Income2Needs","IncCombinedMidpoint","EdYearsHighest","EdYearsAverage"
+
+```{r}
+head(dfSES)
+```
+```{r}
+summary(as.factor(dfSES$rel_family_id))
+```
+# Randomly select one sibling from family 
+```{r}
+# Randomly select one row from each level of dfSES$rel_family_id
+random_rows <- dfSES %>%
+  group_by(rel_family_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+
+# View the resulting dataframe
+print(random_rows)
 ```
 
 
+```{r}
+dfTOTAL <- dfSES %>%
+  inner_join(DFhigh_low, by = "subjectkey")
+```
 
+```{r}
+# Columns to check for NA
+columns_to_check <- c(
+  "crpbi_y_ss_parent",             
+  "srpf_y_ss_ses",                 
+  "basic_needs_sum",               
+  "sub_crime_sum",                 
+  "abcd_site",                     
+  "abcd_site_num",                 
+  "eventname.y",                   
+  "Income2Needs",                  
+  "IncCombinedMidpoint",           
+  "EdYearsHighest",                
+  "EdYearsAverage",                
+  "reshist_addr1_adi_wsum",        
+  "ses_fac"
+)
 
+# Drop rows with NA in the specified columns
+df_cleaned <- dfTOTAL %>%
+  drop_na(all_of(columns_to_check))
+
+# View the cleaned dataframe
+print(df_cleaned)
+
+```
+
+```{r}
+save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/DFSESnotmatch.RData")
+```
