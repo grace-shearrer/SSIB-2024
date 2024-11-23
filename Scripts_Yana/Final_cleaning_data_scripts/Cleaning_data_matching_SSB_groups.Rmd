@@ -352,7 +352,7 @@ summary(m.out0)
 # Perform matching using nearest neightbor (it works OK)
 ```{r}
 m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + demo_comb_income_v2, data = DFhigh_low,
-                 method = "exact", distance = "glm")
+                 method = "nearest", distance = "glm")
 
 #m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
 #                 method = "nearest", distance = "glm")
@@ -386,6 +386,21 @@ head(highLow_DF)
 round(colMeans(highLow_DF[,c(6, 9:427, 429:432)]),2)
 sapply(highLow_DF[,c(6, 9:427, 429:432)], sd)
 ```
+```{r}
+summary(highLow_DF$demo_comb_income_v2)
+t.test(demo_comb_income_v2 ~ ssb_group, data = highLow_DF)
+
+library(psych)
+describeBy(highlow_DFbak$de)
+```
+```{r}
+library(ggplot2)
+# Basic violin plot
+ggplot(highlow_DFbak, aes(x = ssb_group, y = demo_comb_income_v2)) +
+  geom_violin() +
+  theme_minimal()
+```
+
 
 ```{r}
 install.packages("fastDummies")
