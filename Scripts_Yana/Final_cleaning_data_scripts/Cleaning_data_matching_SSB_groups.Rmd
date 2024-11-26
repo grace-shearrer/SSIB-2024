@@ -259,6 +259,9 @@ DF$ssb_group <- cut(DF$bkfs_soda,
                           labels=c('low', 'medium', 'high'))
 summary(as.factor(DF$ssb_group))
 ```
+```{r}
+describeBy(DF$bkfs_soda, DF$ssb_group)
+```
 
 
 ```{r}
@@ -320,6 +323,7 @@ Why the factoring does not work? It keeps appearing as a character.
 colnames(intDF)
 intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
 intDF[,c(9:427, 429:432)]<-sapply(intDF[,c(9:427, 429:432)], as.numeric)
+summary(as.factor(intDF$ssb_group))
 ```
 
 ```{r}
@@ -375,6 +379,44 @@ names(highlow_DFbak)
 highlow_DFbak
 highlow_DFbak<-highLow_DF
 ```
+# Demographics
+single<-subset(demo_df, demo_df$multiRacial == 0)
+#1 = white
+single$race_white<-single$demo_race_a_p___10*1
+#2 = black
+single$race_black<-single$demo_race_a_p___11*2
+#3 = native american
+single$race_AmIn<-single$demo_race_a_p___12*3
+#4 = native alaska
+single$race_NaAl<-single$demo_race_a_p___13*4
+#5 = native hawaiian
+single$race_NaHi<-single$demo_race_a_p___14*5
+#6 = guam
+single$race_guam<-single$demo_race_a_p___15*6
+#7 = samoa
+single$race_samoa<-single$demo_race_a_p___16*7
+#8 = PI
+single$race_PI<-single$demo_race_a_p___17*8
+#9 = IndianAsian
+single$race_AIndian<-single$demo_race_a_p___18*9
+#10 = Chinese
+single$race_Chinese<-single$demo_race_a_p___19*10
+#11 = Filipino
+single$race_Filipino<-single$demo_race_a_p___20*11
+#12 = Japanese
+single$race_Japanese<-single$demo_race_a_p___21*12
+#13 = Korean
+single$race_Korean<-single$demo_race_a_p___22*13
+#14 = Viet
+single$race_Viet<-single$demo_race_a_p___23*14
+#15 = OtherAsian
+single$race_OAsian<-single$demo_race_a_p___24*15
+
+```{r}
+summary(as.factor(highlow_DFbak$race))
+```
+
+
 #Centering the data
 ```{r}
 colnames(intDF)
@@ -386,6 +428,12 @@ head(highLow_DF)
 round(colMeans(highLow_DF[,c(6, 9:427, 429:432)]),2)
 sapply(highLow_DF[,c(6, 9:427, 429:432)], sd)
 ```
+
+```{r}
+describeBy(highLow_DF$interview_age, highLow_DF$ssb_group)
+```
+
+
 ```{r}
 summary(highLow_DF$demo_comb_income_v2)
 t.test(demo_comb_income_v2 ~ ssb_group, data = highLow_DF)
@@ -396,11 +444,36 @@ describeBy(highlow_DFbak$de)
 ```{r}
 library(ggplot2)
 # Basic violin plot
-ggplot(highlow_DFbak, aes(x = ssb_group, y = demo_comb_income_v2)) +
+ggplot(highlow_DFbak, aes(x = ssb_group, y = rsfmri_cor_ngd_sa_scs_thplh, color = demo_comb_income_v2)) +
   geom_violin() +
   theme_minimal()
 ```
 
+```{r}
+library(ggpubr)
+ch<-table(highlow_DFbak$ssb_group,highlow_DFbak$demo_comb_income_v2)
+chisq.test(ch,correct=FALSE)
+# Change color and fill
+my_cols <- c("#0D0887FF", "#6A00A8FF", "#B12A90FF",
+"#E16462FF", "#FCA636FF", "#F0F921FF")
+ch<-as.data.frame(ch)
+ch$Var2<-as.numeric(as.character(ch$Var2))
+# Create the balloon plot
+ggballoonplot(ch, x = "Var2", y = "Var1", size = "Freq", fill = "Freq") +
+  scale_fill_gradientn(colors = my_cols) +
+  labs(x = "Income Groups", y = "SSB Group", size = "Frequency", fill = "Frequency") +
+  theme_minimal()
+
+```
+```{r}
+# Scatterplot with a line of best fit
+# Same, but with different colors and add regression lines
+ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=rsfmri_c_ngd_cgc_ngd_cgc, color=ssb_group)) +
+    geom_point(shape=1) +
+    scale_colour_hue(l=50) + # Use a slightly darker palette than normal
+    geom_smooth(method=lm) + theme_classic()
+
+```
 
 ```{r}
 install.packages("fastDummies")
@@ -423,6 +496,16 @@ write.table(dummy_vars, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab -
 hist(highLow_DF$bkfs_soda, main = "Distribution of soda per day \nn=1568 (soda intake groups matched on age, bmi% and household income)")
 ```
 
+
+```{r}
+library(psych)
+describeBy(df$rsfmri_cor_ngd_none_scs_cderh, df$ssb_group)
+```
+
+# Descriptives
+```{r}
+dim(highLow_DF)
+```
 
 
 ```{r}
