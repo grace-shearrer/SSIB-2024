@@ -380,7 +380,6 @@ highlow_DFbak
 highlow_DFbak<-highLow_DF
 ```
 # Demographics
-single<-subset(demo_df, demo_df$multiRacial == 0)
 #1 = white
 single$race_white<-single$demo_race_a_p___10*1
 #2 = black
@@ -413,7 +412,8 @@ single$race_Viet<-single$demo_race_a_p___23*14
 single$race_OAsian<-single$demo_race_a_p___24*15
 
 ```{r}
-summary(as.factor(highlow_DFbak$race))
+sd(highlow_DFbak$age_years)
+2618/3700
 ```
 
 
