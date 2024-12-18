@@ -512,3 +512,34 @@ dim(highLow_DF)
 #save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
 ```
 
+```{r}
+load("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+```
+
+```{r}
+library(psych)
+describeBy(highLow_DF$bkfs_soda, highLow_DF$ssb_group )
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+names(highlow_DFbak)
+```
+
+
+```{r}
+# Scatterplot with a line of best fit
+# Same, but with different colors and add regression lines
+ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=age_years, color=ssb_group)) +
+    geom_point(shape=1) +
+    geom_smooth(method=lm) + theme_classic()+
+    labs(
+        x = "Combined Household Income",  # Custom x-axis label
+        y = "Age in years"   # Custom y-axis label
+    )+ scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10))
+
+```
+
