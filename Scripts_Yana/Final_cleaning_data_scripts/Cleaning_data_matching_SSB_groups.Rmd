@@ -533,12 +533,12 @@ names(highlow_DFbak)
 ```{r}
 # Scatterplot with a line of best fit
 # Same, but with different colors and add regression lines
-ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=age_years, color=ssb_group)) +
+ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=bmi_perc, color=ssb_group)) +
     geom_point(shape=1) +
     geom_smooth(method=lm) + theme_classic()+
     labs(
         x = "Combined Household Income",  # Custom x-axis label
-        y = "Age in years"   # Custom y-axis label
+        y = "BMI percentile"   # Custom y-axis label
     )+ scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10))
 
 ```
