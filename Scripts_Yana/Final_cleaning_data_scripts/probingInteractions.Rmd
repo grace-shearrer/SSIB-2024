@@ -1,0 +1,127 @@
+---
+title: "Probing the interaction"
+output: html_notebook
+---
+
+Using this for guidance:
+https://web.pdx.edu/~newsomj/cdaclass/ho_interactions.pdf
+Continuous × Continuous Interaction
+
+```{r}
+library(vroom)
+library(fastDummies)
+source('~/Downloads/processv43/PROCESS v4.3 for R/process.R',echo=FALSE)
+```
+
+```{r}
+df = vroom('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724_centered_dum.csv')
+```
+```{r}
+df <- dummy_cols(df, select_columns = "ssb_group", remove_first_dummy = FALSE, remove_selected_columns = FALSE)
+names(df)
+```
+# variables of interest
+'rsfmri_c_ngd_cgc_ngd_cgc', 'rsfmri_cor_ngd_df_scs_pllh',
+       'rsfmri_cor_ngd_none_scs_cderh', 'rsfmri_cor_ngd_sa_scs_thplh',
+       'interview_age', 'bmi_perc'
+
+## rsfmri_c_ngd_cgc_ngd_cgc
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="rsfmri_c_ngd_cgc_ngd_cgc",model=1,center=0,moments=1,plot=1)
+```
+odds from the probabilities
+Odds= prob/(1-prob)
+
+A high levels of connectivity, higher income was associated with 45% lower odds of being in the high SSB group. At mean levels of connectivity, higher income was related to 50% lower odds of being in the high SSB group (50%). At low levels connectivity, higher income was related to with 55% lower odds of being in high SSB group. 
+
+```{r}
+(0.8800)/(1-0.8800) #low low
+(0.2267)/(1-0.2267) # high high
+(0.2094)/(1-0.2094) #high income low conn
+(0.7826)/(1-0.7826) #low income high conn
+(0.5447)/(1-0.5447) # mean mean
+```
+
+
+```{r}
+1-exp(-0.6025) #high connectivity
+1-exp(-0.7002) #mean connectivity 
+1-exp(-0.7979) #low connectivity 
+
+```
+
+
+```{r}
+d <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_cgc_ngd_cgc.txt',sep=" "),header=TRUE)
+head(d)
+library(ggplot2)
+#process(data=df,y="ssb_group_high",x="rsfmri_c_ngd_cgc_ngd_cgc",w="demo_comb_income_v2",model=1,center=0,moments=1,plot=1)
+#process(data=d,y="w1hheart",x="w1neg",w="w1cesd9",model=1,center=1,moments=1,plot=1)
+ggplot(data = d, aes(x=demo_comb_income_v2, y=prob, group=rsfmri_c_ngd_cgc_ngd_cgc, color=rsfmri_c_ngd_cgc_ngd_cgc)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+## rsfmri_cor_ngd_df_scs_pllh
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="rsfmri_cor_ngd_df_scs_pllh",model=1,center=0,moments=1,plot=1)
+```
+```{r}
+d2 <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_df_scs_pllh .txt',sep=" "),header=TRUE)
+ggplot(data = d2, aes(x=demo_comb_income_v2, y=prob, group=rsfmri_cor_ngd_df_scs_pllh, color=rsfmri_cor_ngd_df_scs_pllh)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+## rsfmri_cor_ngd_none_scs_cderh
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="rsfmri_cor_ngd_none_scs_cderh",model=1,center=0,moments=1,plot=1)
+```
+```{r}
+d3 <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_none_scs_cderh.txt',sep=" "),header=TRUE)
+ggplot(data = d3, aes(x=demo_comb_income_v2, y=prob, group=rsfmri_cor_ngd_none_scs_cderh, color=rsfmri_cor_ngd_none_scs_cderh)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+
+## rsfmri_cor_ngd_sa_scs_thplh
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="rsfmri_cor_ngd_sa_scs_thplh",model=1,center=0,moments=1,plot=1)
+```
+```{r}
+d4 <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_sa_scs_thplh.txt',sep=" "),header=TRUE)
+ggplot(data = d4, aes(x=demo_comb_income_v2, y=prob, group=rsfmri_cor_ngd_sa_scs_thplh, color=rsfmri_cor_ngd_sa_scs_thplh)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+
+## interview_age
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="interview_age",model=1,center=0,moments=1,plot=1)
+```
+```{r}
+d5 <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_interview_age',sep=" "),header=TRUE)
+ggplot(data = d5, aes(x=demo_comb_income_v2, y=prob, group=interview_age, color=interview_age)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+
+## bmi_perc
+```{r}
+process(data=df,y="ssb_group_high",x="demo_comb_income_v2",w="bmi_perc",model=1,center=0,moments=1,plot=1)
+```
+```{r}
+d6 <- read.table(file=paste('~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/results_bmi_perc.txt',sep=" "),header=TRUE)
+ggplot(data = d6, aes(x=demo_comb_income_v2, y=prob, group=bmi_perc, color=bmi_perc)) + geom_line(linewidth = 3) + theme_classic()+scale_color_gradient(
+    low = "#E69F00", 
+    high = "#0072B2", 
+  )
+```
+
+
+```{r}
+save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/interactions.RData")
+```
