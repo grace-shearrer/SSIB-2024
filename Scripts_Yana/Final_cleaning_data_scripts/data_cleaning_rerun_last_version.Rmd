@@ -1,0 +1,956 @@
+
+
+# Libraries
+
+```{r, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(childsds)
+library(MatchIt)
+library(vroom)
+```
+
+
+# Read in all the data at the same time
+```{r}
+path2data<-"/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw"
+################################################################
+soda_data <- vroom(paste(path2data,"abcd_bkfs01.txt", sep = "/"))
+anthro_data <- vroom(paste(path2data,"abcd_ant01.txt",sep = "/"))
+demo_data <- vroom(paste(path2data,"pdem02.txt",sep = "/"))
+brain_data <- vroom(paste(path2data,"abcd_betnet02.txt",sep = "/"))
+subcort_brain_data <-vroom(paste(path2data,"mrirscor02.txt",sep = "/"))
+screen_data <- vroom(paste(path2data,"abcd_screen01.txt",sep = "/"))
+med_data <- vroom(paste(path2data,"abcd_mx01.txt",sep = "/"))
+family_data <- vroom(paste(path2data,"acspsw01.txt",sep = "/"))
+imaging_site_data <- vroom(paste(path2data,"abcd_lt01.txt",sep = "/"))
+#imaging_qc_data <- vroom(abcd_imgincl01.csv)
+
+med_data <- med_data[-1, ]
+```
+
+
+ctrl + shift + c to comment out a block
+<!-- # Create a quick data dict -->
+<!-- ```{r} -->
+<!-- DD<-cbind(head(soda_data,1), head(anthro_data, 1), head(demo_data,1), head(brain_data, 1), head(subcort_brain_data,1), head(anthro_data_2,1)) -->
+<!-- DT <-data.frame(t(DD)) -->
+<!-- DT$variable = row.names(DT)  -->
+<!-- names(DT)[c(1, 2)] <- c("variable", "description") -->
+
+<!-- #write.table(DT, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/dataDict.csv", sep = ",", row.names = FALSE) -->
+
+<!-- write.table(DT, r"(C:\Users\Yanko\University of Wyoming\M2AENAD Lab - Documents\M2AENAD Lab - Documents\RESEARCH\ABCD\Yana_SSIB_2024/data/dataDict.csv)", sep = ",", row.names = FALSE) -->
+
+<!-- ``` -->
+
+
+# First screen on obvious 
+## Start n = 11875
+Checking for ADHD, neurological condition, type 1 diabetes, muscle dystrophy, schizophrenia, autism
+abcd_screen01
+- scrn_cpalsy
+-- n = 11867
+- scrn_hemorrhage
+-- n = 11863
+- scrn_medcond_other
+-- n = 11626
+- scrn_asd
+-- n = 11400
+- scrn_schiz
+-- 11397
+- scrn_tumor
+-- 11395
+- scrn_stroke
+- scrn_aneurysm
+- scrn_hemorrhage
+- scrn_hemotoma
+- scrn_medcond_other
+- scrn_schiz
+
+
+```{r}
+screen_data1 <-subset(screen_data, screen_data$scrn_cpalsy != 0)
+screen_data2 <- subset(screen_data1, screen_data1$scrn_hemorrhage != 0)
+screen_data3 <- subset(screen_data2, screen_data2$scrn_medcond_other != 1)
+screen_data4 <- subset(screen_data3, screen_data3$scrn_asd != 1)
+screen_data5 <- subset(screen_data4, screen_data4$scrn_schiz != 1)
+screen_data6 <- subset(screen_data5, screen_data5$scrn_tumor != 0)
+screen_data7 <- subset(screen_data6, screen_data6$scrn_stroke != 0)
+screen_data8 <- subset(screen_data7, screen_data7$scrn_aneurysm != 0)
+screen_data9 <- subset(screen_data8, screen_data8$scrn_hemotoma != 0)
+screen_data10 <- subset(screen_data9, screen_data9$scrn_medcond_other != 1)
+screen_df<-screen_data10 #11391
+```
+abcd_mx01
+- MusDys medhx_2l
+- MS medhx_2m
+- medhx_2k lead poisoning
+- kidney disease medhx_2j
+- cancer medhx_2e
+- medhx_2g diabetes
+- cere pals medhx_2f
+- medhx_2o heart
+```{r}
+med_data <- med_data[med_data$eventname == 'baseline_year_1_arm_1',]
+screen_med_data<-join(med_data, screen_df)
+####
+summary(as.factor(screen_med_data$medhx_2o))
+screen_med_data1<-subset(screen_med_data, screen_med_data$medhx_2l != 1)
+screen_med_data2<-subset(screen_med_data1, screen_med_data1$medhx_2m != 1)
+screen_med_data3<-subset(screen_med_data2, screen_med_data2$medhx_2k != 1)
+screen_med_data4<-subset(screen_med_data3, screen_med_data3$medhx_2j != 1)
+screen_med_data5<-subset(screen_med_data4, screen_med_data4$medhx_2e != 1)
+screen_med_data6<-subset(screen_med_data5, screen_med_data5$medhx_2g != 1)
+screen_med_data7<-subset(screen_med_data6, screen_med_data6$medhx_2f != 1)
+screen_med_data8<-subset(screen_med_data7, screen_med_data7$medhx_2o != 1)
+screen_med_df<-screen_med_data8 #11364
+```
+output:
+Joining by: collection_id, dataset_id, subjectkey, src_subject_id, interview_date, interview_age, sex, eventname, collection_title
+    0     1  NA's 
+11486   384     5
+
+```{r}
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/screening6525.RData")
+```
+
+# demographics of interest
+household income
+1= Less than $5,000; 2=$5,000 through $11,999; 3=$12,000 through $15,999; 4=$16,000 through $24,999; 5=$25,000 through $34,999; 6=$35,000 through $49,999; 7=$50,000 through $74,999; 8= $75,000 through $99,999; 9=$100,000 through $199,999; 10=$200,000 and greater. 999 = Don't know  777 = Refuse to answer 
+```{r}
+demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "777")
+demo_data<-subset(demo_data, demo_data$demo_comb_income_v2 != "999")
+demo_data <- demo_data[-1, ] #first columnrow is descriptions
+```
+#n demo data = 10321
+
+```{r}
+demos<-c("subjectkey", "sex", "interview_age", "demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",          "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15", "demo_race_a_p___16", "demo_race_a_p___17",         
+ "demo_race_a_p___18", "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21", "demo_race_a_p___22",  "demo_race_a_p___23", "demo_race_a_p___24", "demo_comb_income_v2") 
+demo_df<-demo_data[demos]
+head(demo_df)
+columns_to_sum <- c("demo_race_a_p___10", "demo_race_a_p___11", "demo_race_a_p___12",
+                    "demo_race_a_p___13", "demo_race_a_p___14", "demo_race_a_p___15",
+                    "demo_race_a_p___16", "demo_race_a_p___17", "demo_race_a_p___18",
+                    "demo_race_a_p___19", "demo_race_a_p___20", "demo_race_a_p___21",
+                    "demo_race_a_p___22", "demo_race_a_p___23", "demo_race_a_p___24")
+
+# Convert specified columns to numeric
+demo_df[columns_to_sum] <- lapply(demo_df[columns_to_sum], as.numeric)
+
+# Calculate the sum across the specified columns for each row
+demo_df$row_sum <- rowSums(demo_df[, columns_to_sum], na.rm = TRUE)
+summary(as.factor(demo_df$row_sum))
+demo_df$multiRacial <- ifelse(demo_df$row_sum > 1, 1, 0)
+summary(as.factor(demo_df$multiRacial))
+multi<-subset(demo_df, demo_df$multiRacial == 1)
+multi$race<-multi$multiRacial*16
+##################################################
+single<-subset(demo_df, demo_df$multiRacial == 0)
+#1 = white
+single$race_white<-single$demo_race_a_p___10*1
+#2 = black
+single$race_black<-single$demo_race_a_p___11*2
+#3 = native american
+single$race_AmIn<-single$demo_race_a_p___12*3
+#4 = native alaska
+single$race_NaAl<-single$demo_race_a_p___13*4
+#5 = native hawaiian
+single$race_NaHi<-single$demo_race_a_p___14*5
+#6 = guam
+single$race_guam<-single$demo_race_a_p___15*6
+#7 = samoa
+single$race_samoa<-single$demo_race_a_p___16*7
+#8 = PI
+single$race_PI<-single$demo_race_a_p___17*8
+#9 = IndianAsian
+single$race_AIndian<-single$demo_race_a_p___18*9
+#10 = Chinese
+single$race_Chinese<-single$demo_race_a_p___19*10
+#11 = Filipino
+single$race_Filipino<-single$demo_race_a_p___20*11
+#12 = Japanese
+single$race_Japanese<-single$demo_race_a_p___21*12
+#13 = Korean
+single$race_Korean<-single$demo_race_a_p___22*13
+#14 = Viet
+single$race_Viet<-single$demo_race_a_p___23*14
+#15 = OtherAsian
+single$race_OAsian<-single$demo_race_a_p___24*15
+
+sumagain<-c("race_white", "race_black", "race_AmIn", "race_NaAl", "race_NaHi", "race_guam", "race_samoa", "race_PI", "race_AIndian", "race_Filipino", "race_Chinese",  "race_Japanese", "race_Korean", "race_Viet","race_OAsian")
+single$race <- rowSums(single[, sumagain], na.rm = TRUE)
+```
+  0    1    2    3    4    5 
+ 522 8691  968  123   16    1 
+   0    1 
+9213 1108 
+Drop extra columns
+```{r}
+# Drop specific columns by name
+single <- single %>%
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24, -row_sum, -multiRacial, -race_white, -race_black, -race_AmIn, -race_NaAl, -race_NaHi, -race_guam, -race_samoa, -race_PI, -race_AIndian, -race_Filipino, -race_Chinese, -race_Japanese, -race_Korean, -race_Viet, -race_OAsian)
+```
+
+```{r}
+names(multi)
+multi <- multi %>%
+  select(-demo_race_a_p___10, -demo_race_a_p___11, -demo_race_a_p___12, -demo_race_a_p___13, -demo_race_a_p___14, -demo_race_a_p___15, -demo_race_a_p___16, -demo_race_a_p___17, -demo_race_a_p___18, -demo_race_a_p___19, -demo_race_a_p___20, -demo_race_a_p___21, -demo_race_a_p___22, -demo_race_a_p___23, -demo_race_a_p___24,  -row_sum, -multiRacial)
+```
+
+```{r}
+DEMOS_df<-rbind(single, multi)
+summary(as.factor(DEMOS_df$demo_comb_income_v2))
+```
+  1   10    2    3    4    5    6    7    8    9 
+ 367 1218  369  246  471  599  878 1426 1527 3220 
+DEMOS_df 10321
+
+```{r}
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/demos6525.RData")
+```
+
+```{r}
+# Perform the join explicitly on "subjectkey"
+screen_med_demo_df <- screen_med_df %>%
+  inner_join(DEMOS_df, by = "subjectkey")
+```
+screen_med_demo_df 9873
+#9873 was in Grace's version. too
+
+# Screen for abnormal height and weight
+```{r}
+names(anthro_data)
+anthroInterest<-c("subjectkey", "src_subject_id", "interview_age", "sex", "eventname", "anthro_1_height_in", "anthro2heightin", "anthro3heightin", "anthroheightcalc", "anthroweight1lb", "anthroweight2lb", "anthroweight3lb", "anthroweightcalc", "anthro_waist_cm")
+anthro_data<-anthro_data[,anthroInterest]
+head(anthro_data)
+names(anthro_data)
+anthro_data[,6:14][]<-lapply(anthro_data[,6:14], as.numeric)
+head(anthro_data)
+anthro_data$eventname<-as.factor(anthro_data$eventname)
+anthro_data$sex<-as.factor(anthro_data$sex)
+```
+
+
+# First find the weights
+```{r}
+anthro_data$anthroweight1lb<-as.numeric(anthro_data$anthroweight1lb)
+anthro_data$anthroweight2lb<-as.numeric(anthro_data$anthroweight2lb)
+anthro_data$anthroweight3lb<-as.numeric(anthro_data$anthroweight3lb)
+anthro_data$anthroheightcalc<-as.numeric(anthro_data$anthroheightcalc)
+anthro_data$interview_age<-as.numeric(anthro_data$interview_age)
+```
+
+```{r}
+summary(anthro_data$eventname)
+anthroData0<-subset(anthro_data, anthro_data$eventname == "baseline_year_1_arm_1") #n = 11876
+anthroData1<-subset(anthro_data, anthro_data$eventname == "1_year_follow_up_y_arm_1")
+anthroData2<-subset(anthro_data, anthro_data$eventname == "2_year_follow_up_y_arm_1")
+
+# Remove heights lower than 40 in and higher than 60 in
+summary(anthroData01$anthro2heightin)
+anthroData01<-subset(anthroData0, anthroData0$anthroheightcalc > 40) #11850 40 in is the below the 5% for girls age 9
+anthroData01<-subset(anthroData0, anthroData0$anthroheightcalc < 60) #10955 60 in is above 95% for boys age 9
+
+```
+
+
+```{r}
+#find weights that are significantly different (more 0.1 lbs)
+anthroData01$anthroweightAbsDiff12<-abs(anthroData01$anthroweight1lb - anthroData01$anthroweight2lb)
+summary(anthroData01$anthroweightAbsDiff12)
+#> 0.1
+anthroData01$anthroweightAbsDiff12 > 0.1
+anthroData01$anthroweightGet3<- as.factor(anthroData01$anthroweightAbsDiff12 > 0.1)
+summary(anthroData01$anthroweightGet3)
+
+#remove implausabile weight lower than 40lb and greater than 120
+WTOK<-subset(anthroData01, anthroData01$anthroweightGet3 == FALSE)
+names(WTOK)
+WTOK$averageWTlb<-rowMeans(WTOK[,10:11])
+summary(WTOK$averageWTlb)
+# weight less than 40lb
+# weight greater than 120lb
+WTOK<-subset(WTOK, WTOK$averageWTlb > 40)#9928
+WTOK<-subset(WTOK, WTOK$averageWTlb < 120)#9435
+
+
+checkWT<-subset(anthroData01, anthroData01$anthroweightGet3 == TRUE) #1015
+checkWT$checkWT13<-abs(checkWT$anthroweight1lb - checkWT$anthroweight3lb)
+checkWT$checkWT23<-abs(checkWT$anthroweight2lb - checkWT$anthroweight3lb)
+summary(checkWT$checkWT13)
+summary(checkWT$checkWT23)
+
+checkWT$FLAG13<- checkWT$checkWT13 >0.1
+summary(checkWT$FLAG13)
+
+checkWT$FLAG23<- checkWT$checkWT23 >0.1
+summary(checkWT$FLAG23)
+
+
+checkWT<-subset(checkWT, checkWT$FLAG13 == FALSE | checkWT$FLAG23 == FALSE)#774
+checkWTuse13<-subset(checkWT, checkWT$FLAG13 == FALSE) #291
+checkWTuse13$averageWTlb<-rowMeans(checkWTuse13[c("anthroweight1lb", "anthroweight3lb" )])
+names(checkWTuse13)
+checkWTuse23<-subset(checkWT, checkWT$FLAG23 == FALSE) #488
+checkWTuse23$averageWTlb<-rowMeans(checkWTuse23[c("anthroweight2lb", "anthroweight3lb" )])
+
+checkWT2<-rbind(checkWTuse13, checkWTuse23)
+
+dupes<-checkWT2[duplicated(checkWT2$subjectkey),]
+dupes$subjectkey
+
+
+for (sub in dupes$subjectkey){
+  mu<-mean(checkWT2[checkWT2$subjectkey == sub,]$averageWTlb)
+  checkWT2$averageWTlb[checkWT2$subjectkey == sub] <- mu
+  print(checkWT2$averageWTlb[checkWT2$subjectkey == sub])
+
+
+}
+
+checkWT2<-checkWT2[!duplicated(checkWT2), ]#774
+```
+
+```{r}
+drops <- c("checkWT13", "checkWT23", "FLAG13", "FLAG23")
+checkWT3<-checkWT2[ , !(names(checkWT2) %in% drops)]
+
+anthroData3<-rbind(checkWT3, WTOK) #10209
+```
+
+
+```{r}
+summary(anthroData3$averageWTlb)
+anthroData3<-subset(anthroData3, anthroData3$averageWTlb < 120) #10160
+head(anthroData3)
+```
+
+
+
+```{r}
+#prepare datasets for easier data handling
+baseline_anthro <- anthro_data[anthro_data$eventname == 'baseline_year_1_arm_1',]
+y2_anthro <- anthro_data[anthro_data$eventname == '2_year_follow_up_y_arm_1',]
+
+height_check_df <- screen_med_demo_df %>%
+  inner_join(baseline_anthro, by = "subjectkey")
+#height_check_df n=9872
+
+# Create a column of height in cm by converting from inches to cm
+height_check_df$height_cm <- as.numeric(height_check_df$anthroheightcalc) * 2.54
+
+
+#subset those below 100 cm
+short_subs <- height_check_df[height_check_df$height_cm < 100, ]
+#short_subs n=12, of them 2 are NAs
+summary(as.factor(short_subs$subjectkey))
+colnames(short_subs)
+#create a df to see the subjects' height at baseline and y2
+short_subs_heights <- short_subs %>%
+  select(subjectkey, height_baseline = anthroheightcalc) %>%
+  left_join(
+    y2_anthro %>% select(subjectkey, height_y2 = anthroheightcalc),
+    by = "subjectkey"
+  )
+
+```
+All heights are indeed abnormal, short subs must be excluded from the analysis
+
+#Now weight QC
+
+```{r}
+#can't get this to run without creating all NAs<- GES
+# Join weight data
+weight_check_df <- screen_med_demo_df %>%
+  inner_join(baseline_anthro, by = "subjectkey")
+#weight_check_df n=9872
+
+# Convert weight from lbs to kg
+weight_check_df$weight_kg <- as.numeric(weight_check_df$anthroweightcalc) * 0.453592
+weight_check_df$anthroweightcalc
+
+# Subset those above 55 kg
+heavy_subs <- weight_check_df[weight_check_df$weight_kg > 55, ]
+summary(as.factor(heavy_subs$subjectkey))
+#heavy_subs n = 687, 4 are NAs
+
+# Create df to check weight at baseline and y2
+heavy_subs_weights <- heavy_subs %>%
+  select(subjectkey, weight_baseline = anthroweightcalc) %>%
+  left_join(
+    y2_anthro %>% select(subjectkey, weight_y2 = anthroweightcalc),
+    by = "subjectkey"
+  )
+
+#687 subjects is too much to review
+#start by dropping NAs
+heavy_subs_weights <- na.omit(heavy_subs_weights)
+#455
+
+#now track the differences
+
+# convert to kgs
+heavy_subs_weights <- heavy_subs_weights %>%
+  mutate(
+    weight_baseline_kg = as.numeric(weight_baseline) * 0.453592,
+    weight_y2_kg = as.numeric(weight_y2) * 0.453592
+  )
+
+gained_weight <- heavy_subs_weights %>%
+  filter(weight_y2_kg > weight_baseline_kg)
+#444
+lost_weight <- heavy_subs_weights %>%
+  filter(weight_y2_kg < weight_baseline_kg)
+#10
+#the differences are not too big
+#conclusion - no exclusions needed due to abnormal weight 
+```
+
+# Filter by event then drop event column
+We are going to try to predict the SSB intake from the baseline data so we want baseline for the brain data
+```{r}
+soda_data <- soda_data[soda_data$eventname == '2_year_follow_up_y_arm_1',]
+brain_data <- brain_data[brain_data$eventname == 'baseline_year_1_arm_1',]
+demo_data <- demo_data[demo_data$eventname == 'baseline_year_1_arm_1',]
+subcort_brain_data <- subcort_brain_data[subcort_brain_data$eventname == 'baseline_year_1_arm_1',]
+anthro_data <- anthro_data[anthro_data$eventname == 'baseline_year_1_arm_1',]
+baseline_imaging_site <- imaging_site_data[imaging_site_data$eventname == 'baseline_year_1_arm_1',]
+baseline_siblings <- family_data[family_data$eventname == 'baseline_year_1_arm_1',]
+```
+
+
+```{r}
+summary(as.factor(baseline_siblings$rel_group_id))
+summary(as.factor(baseline_siblings$rel_family_id))
+```
+
+
+# Get columns of interest
+```{r}
+soda_interest<-c("subjectkey", "sex", "bkfs_soda")
+anthro_interest<-c("subjectkey", "sex", "interview_age", "anthroheightcalc", "anthroweightcalc")
+brain_interest<-c(4,8,23:191)
+subcort_interest<-c(4,8,23:269)
+siblings_interest <- c("subjectkey", "gender","rel_family_id")
+imaging_site_interest<-c("subjectkey","site_id_l")
+#subset
+#colnames(brain_data)
+soda_df<-soda_data[soda_interest]
+anthro_df<-anthro_data[anthro_interest]
+brain_df<-brain_data[,brain_interest]
+subcort_df<-subcort_brain_data[,subcort_interest]
+imaging_site <- baseline_imaging_site[imaging_site_interest]
+siblings <- baseline_siblings[siblings_interest]
+#n=4525 for siblings
+
+```
+
+
+# Join the datasets into a single dataframe
+```{r}
+df0<-join(soda_df, anthro_df)
+df0.1<-join(df0,brain_df)
+df0.2<-join(df0.1,subcort_df)
+
+# Perform the join explicitly on "subjectkey"
+df0.3 <- screen_med_demo_df %>%
+  inner_join(df0.2, by = "subjectkey")
+
+DF<-df0.3
+```
+#don't kow where this is from DEMOS n = 8981
+#DEMOS_df n=10321
+
+```{r}
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/combDF.RData")
+```
+
+
+#Create groups for SSB
+If you give it an upper limit you don't need the part with the 777 it would remove those also if you have -Inf you might be picking up inaccurate negative soda intake, best to keep the bottom as 0. I just copied and pasted this above, but for the next iteration do this. 
+
+If I keep the bottom at 0, it says the breaks are incorrect.
+It's okay to use -Inf here since the minimum is 0.
+
+```{r}
+DF<-subset(DF, DF$bkfs_soda != "777") #n = 8926 (as in Grace's)
+DF$bkfs_soda<-as.numeric(DF$bkfs_soda)
+DF$ssb_group <- cut(DF$bkfs_soda,
+                          breaks=c(-Inf, 0, 2, Inf), 
+                          labels=c('low', 'medium', 'high'))
+summary(as.factor(DF$ssb_group))
+```
+low medium   high 
+  3021   3902   2003 
+  
+```{r}
+describeBy(DF$bkfs_soda, DF$ssb_group)
+```
+
+
+
+# Calculate BMI and age in years
+```{r}
+DF$BMI<-(DF$anthroweightcalc/(DF$anthroheightcalc)^2)*703
+DF$age_years<-DF$interview_age/12
+summary(DF$BMI)
+# Drop rows where column A has NA
+DF <- DF[!is.na(DF$BMI), ] #n = 8921
+```
+ Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  2.148  15.891  17.558  18.658  20.400  52.825       5 
+
+# Calculate BMI%
+```{r}
+DF$bmi_perc <- childsds::sds(DF$BMI,
+                    age = DF$age_years,
+                    sex = DF$sex, male = "M", female = "F",
+                    ref = cdc.ref,
+                    item = "bmi",
+                    type = "perc")
+summary(DF$bmi_perc)
+# filter out underweight children
+DF<-subset(DF, DF$bmi_perc>.05) #n = 8560 (as in Grace's)
+```
+  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.0000  0.3437  0.6513  0.6018  0.8943  0.9994 
+ 
+```{r}
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
+```
+
+```{r}
+names(DF)
+#[1] "collection_id"                  "abcd_mx01_id"                   "dataset_id"                    
+#  [4] "subjectkey"                     "src_subject_id"
+# [166] "demo_comb_income_v2"            "race"                           "sex"                           
+# [169] "bkfs_soda"                      "interview_age"                  "anthroheightcalc"  
+#then comes the brain data and 
+#[589] "ssb_group"                      "BMI"                            "age_years"                     
+#[592] "bmi_perc"
+intDF <- DF[, c(1:5, 166:592)]
+#n = 8560 (like in Grace's)
+```
+
+#Drop missing values
+```{r}
+intDF<-intDF[complete.cases(intDF), ] #n = 8116 (like in Grace's)
+#drop short_subs
+intDF_filtered <- intDF %>%
+  filter(!subjectkey %in% short_subs$subjectkey)
+```
+
+#Find the class of all columns and then cast columns as factors or numeric as needed
+Why the factoring does not work? It keeps appearing as a character.
+
+```{r}
+colnames(intDF)
+intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
+intDF[,c(9:427, 429:432)]<-sapply(intDF[,c(9:427, 429:432)], as.numeric)
+summary(as.factor(intDF$ssb_group))
+```
+  1    2    3 
+2730 3536 1850 
+low medium high
+total intDF n =8 116 
+```{r}
+#save.image(file = "/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/bmiDF.RData")
+```
+
+# Create high vs low, and low vs. medium datasets
+Since low will be the reference group, we want to match based on the reference group
+# we don't need medium
+
+```{r}
+DFhigh_low<-subset(intDF, intDF$ssb_group != "2") # n = 4580
+DFhigh_low$ssb_group<-factor(DFhigh_low$ssb_group)
+#this didn't drop the unused level
+#DFhigh_low$ssb_group <- droplevels(DFhigh_low$ssb_group)
+levels(DFhigh_low$ssb_group)
+summary(DFhigh_low$ssb_group)
+```
+1    3 
+2730 1850 
+
+check siblings 
+```{r}
+sum(DFhigh_low$subjectkey %in% siblings$subjectkey)
+```
+#1832
+If we only use subjects with relatives data, then we would have 1832 subjects only (before matching)
+Thus, we will only exclude the proven siblings.
+
+```{r}
+sum(DFhigh_low$subjectkey %in% siblings$subjectkey) #1832
+
+DFhigh_low_bkup <- DFhigh_low 
+#DFhigh_low_bkup - pre-matched sample (b4 excluding for too much motion)
+# DFhigh_low_bkup n=4580
+
+not_in_siblings <- DFhigh_low %>%
+  filter(!subjectkey %in% siblings$subjectkey)
+#not_in_siblings - no family data available
+#not_in_siblings n=2748
+
+in_siblings <- siblings %>%
+  filter(subjectkey %in% DFhigh_low$subjectkey)
+#in_siblings n=1832 
+#in_siblings - subjects with available family data
+
+# Keep only 1 random subject per rel_family_id
+set.seed(123)  # For reproducibility
+no_siblings <- in_siblings %>%
+  group_by(rel_family_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+#no_siblings = sample with just 1 random kid per family
+#no_siblings n=1682
+data_for_no_siblings <- DFhigh_low_bkup %>%
+  inner_join(no_siblings, by = "subjectkey")
+DFhigh_low <- bind_rows(not_in_siblings, data_for_no_siblings)
+#DFhigh_low_bkup- with cleaned siblings (the var DFhigh_low will be changed in further analysis)
+#DFhigh_low n=4430
+```
+DFhigh_low n = 4430 (was 4580 before removing siblings)
+
+
+
+
+#2067
+
+# Perform initial matching with null to get an idea of differences
+```{r}
+m.out0 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFhigh_low,
+                 method = NULL, distance = "glm")
+#m.out0.1 <- matchit(ssb_group ~ age_years + bmi_perc, data = DFmedium_low,
+#                 method = NULL, distance = "glm")
+
+```
+
+```{r}
+summary(m.out0)
+```
+# Perform matching using nearest neightbor (it works OK)
+```{r}
+m.out_highLow <- matchit(ssb_group ~ age_years + bmi_perc + demo_comb_income_v2, data = DFhigh_low,
+                 method = "nearest", distance = "glm")
+
+#m.out_mediumLow <- matchit(ssb_group ~ age_years + bmi_perc + household.income.bl, data = DFmedium_low,
+#                 method = "nearest", distance = "glm")
+
+```
+
+
+```{r}
+summary(m.out_highLow)
+plot(m.out_highLow)
+```
+
+# Get dataset from matched output
+```{r}
+highLow_DF <- match.data(m.out_highLow)
+summary(m.out_highLow)
+```
+Sample Sizes:
+          Control Treated
+All          2645    1785
+Matched      1785    1785
+Unmatched     860       0
+Discarded       0       0
+total 3570
+(this is  for subs with FD>0.9)
+#FINAL 
+Sample Sizes:
+          Control Treated
+All          2490    1665
+Matched      1665    1665
+Unmatched     825       0
+Discarded       0       0
+
+```{r}
+highlow_DFbak <- highLow_DF
+names(highlow_DFbak)
+highlow_DFbak
+```
+# Demographics
+#1 = white
+single$race_white<-single$demo_race_a_p___10*1
+#2 = black
+single$race_black<-single$demo_race_a_p___11*2
+#3 = native american
+single$race_AmIn<-single$demo_race_a_p___12*3
+#4 = native alaska
+single$race_NaAl<-single$demo_race_a_p___13*4
+#5 = native hawaiian
+single$race_NaHi<-single$demo_race_a_p___14*5
+#6 = guam
+single$race_guam<-single$demo_race_a_p___15*6
+#7 = samoa
+single$race_samoa<-single$demo_race_a_p___16*7
+#8 = PI
+single$race_PI<-single$demo_race_a_p___17*8
+#9 = IndianAsian
+single$race_AIndian<-single$demo_race_a_p___18*9
+#10 = Chinese
+single$race_Chinese<-single$demo_race_a_p___19*10
+#11 = Filipino
+single$race_Filipino<-single$demo_race_a_p___20*11
+#12 = Japanese
+single$race_Japanese<-single$demo_race_a_p___21*12
+#13 = Korean
+single$race_Korean<-single$demo_race_a_p___22*13
+#14 = Viet
+single$race_Viet<-single$demo_race_a_p___23*14
+#15 = OtherAsian
+single$race_OAsian<-single$demo_race_a_p___24*15
+
+```{r}
+sd(highlow_DFbak$age_years)
+#2618/3700 #0.6227183
+#2645/3570 #0.7408964
+```
+[1] 0.6227183
+[1] 0.7408964
+[1] 0.6203971
+#Centering the data
+```{r}
+colnames(intDF)
+#  [1] "collection_id"                  "abcd_mx01_id"                   "dataset_id"                    
+#  [4] "subjectkey"                     "src_subject_id"                 "demo_comb_income_v2"           
+#  [7] "race"                           "sex"                            "bkfs_soda"                     
+# [10] "interview_age"                  "anthroheightcalc"               "anthroweightcalc"              
+# [13] "rsfmri_c_ngd_ad_ngd_ad"         "rsfmri_c_ngd_ad_ngd_cgc"        "rsfmri_c_ngd_ad_ngd_ca"   
+# [427] "rsfmri_cor_ngd_vs_scs_aarh"     "rsfmri_cor_ngd_vs_scs_vtdcrh"   "ssb_group"                     
+# [430] "BMI"                            "age_years"                      "bmi_perc" 
+colnames(highLow_DF)
+highLow_DF <- highLow_DF[,-c(433:437)]
+#Grace's original
+#intDF[,c(1:8, 428)]<-sapply(intDF[,c(1:8, 428)], as.factor)
+#highLow_DF[,c(6, 9:427, 429:432)]<-sapply(highLow_DF[,c(6, 9:427, 429:432)], as.numeric)
+#highLow_DF[,c(6, 9:427, 429:432)]<-scale(highLow_DF[,c(6, 9:427, 429:432)], center = T, scale = F)
+#head(highLow_DF)
+## Checking the center
+#round(colMeans(highLow_DF[,c(6, 9:427, 429:432)]),2)
+#sapply(highLow_DF[,c(6, 9:427, 429:432)], sd)
+
+#mine
+intDF[,c(1:8, 429)]<-sapply(intDF[,c(1:8, 429)], as.factor)
+highLow_DF[,c(6, 9:428, 430:432)]<-sapply(highLow_DF[,c(6, 9:428, 430:432)], as.numeric)
+highLow_DF[,c(6, 9:428, 430:432)]<-scale(highLow_DF[,c(6, 9:428, 430:432)], center = T, scale = F)
+head(highLow_DF)
+## Checking the center
+round(colMeans(highLow_DF[,c(6, 9:428, 430:432)]),2) #all zeros
+sapply(highLow_DF[,c(6, 9:428, 430:432)], sd)
+
+```
+
+```{r}
+describeBy(highLow_DF$interview_age, highLow_DF$ssb_group)
+```
+
+
+```{r}
+summary(highLow_DF$demo_comb_income_v2)
+t.test(demo_comb_income_v2 ~ ssb_group, data = highLow_DF)
+
+library(psych)
+#describeBy(highlow_DFbak$ssb_group)
+```
+```{r}
+library(ggplot2)
+# Basic violin plot
+ggplot(highlow_DFbak, aes(x = ssb_group, y = rsfmri_cor_ngd_sa_scs_thplh, color = demo_comb_income_v2)) +
+  geom_violin() +
+  theme_minimal()
+```
+
+```{r}
+library(ggpubr)
+ch<-table(highlow_DFbak$ssb_group,highlow_DFbak$demo_comb_income_v2)
+chisq.test(ch,correct=FALSE)
+# Change color and fill
+my_cols <- c("#0D0887FF", "#6A00A8FF", "#B12A90FF",
+"#E16462FF", "#FCA636FF", "#F0F921FF")
+ch<-as.data.frame(ch)
+ch$Var2<-as.numeric(as.character(ch$Var2))
+# Create the balloon plot
+ggballoonplot(ch, x = "Var2", y = "Var1", size = "Freq", fill = "Freq") +
+  scale_fill_gradientn(colors = my_cols) +
+  labs(x = "Income Groups", y = "SSB Group", size = "Frequency", fill = "Frequency") +
+  theme_minimal()
+
+```
+```{r}
+# Scatterplot with a line of best fit
+# Same, but with different colors and add regression lines
+ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=rsfmri_c_ngd_cgc_ngd_cgc, color=ssb_group)) +
+    geom_point(shape=1) +
+    scale_colour_hue(l=50) + # Use a slightly darker palette than normal
+    geom_smooth(method=lm) + theme_classic()
+
+```
+
+```{r}
+install.packages("fastDummies")
+library(fastDummies)
+```
+
+
+```{r}
+highLow_DF_bkup3 <- highLow_DF
+dummy_vars <- dummy_cols(highLow_DF, select_columns = "sex", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+View(dummy_vars)
+dummy_vars <- dummy_cols(dummy_vars, select_columns = "race", remove_first_dummy = FALSE, remove_selected_columns = TRUE)
+levels(dummy_vars$ssb_group)
+```
+
+
+```{r}
+#write.table(dummy_vars, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched111724_centered_dum.csv",  row.names = FALSE, sep = ",")
+
+write.table(dummy_vars, r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\0 PAPER\peer review\data/matched111724_centered_dum.csv)",  row.names = FALSE, sep = ",")
+
+```
+
+
+# FOR BINARY REGRESSION, CREATE A DF WITH MOTION AND IMAGING SITE
+
+# add in the motion for the brain data
+```{r}
+motion<-c("subjectkey","rsfmri_c_ngd_meanmotion")
+brain_motion<-brain_data[,motion]
+withMotion<-join(dummy_vars, brain_motion)
+withMotion$rsfmri_c_ngd_meanmotionScaled<-scale(as.numeric(withMotion$rsfmri_c_ngd_meanmotion), center = T, scale = F)
+describe.by(as.numeric(withMotion$rsfmri_c_ngd_meanmotion), withMotion$ssb_group)
+```
+
+add in the imaging sites
+```{r}
+withMotion_bkup <- withMotion
+withMotion <- withMotion %>%
+  left_join(imaging_site %>% select(subjectkey, site_id_l), by = "subjectkey")
+```
+
+#keep selected columns+ rename them
+```{r}
+colnames(withMotion)
+binary_covars <- withMotion[,c()]#n=3330
+
+binary_covars <- withMotion %>%
+  select(subjectkey,
+         meanmotionScaled = rsfmri_c_ngd_meanmotionScaled,
+         imaging_site = site_id_l)
+```
+
+
+```{r}
+write.table(withMotion, r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\0 PAPER\peer review\data\matched021325_centered_dum.csv)",  row.names = FALSE, sep = ",")
+write.table(binary_covars, r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\0 PAPER\peer review\data\binary_covars.csv)",  row.names = FALSE, sep = ",")
+```
+
+```{r}
+class(dummy_vars$demo_comb_income_v2)
+```
+
+
+```{r}
+save.image(file = "data_cleaning_rerun.RData")
+```
+
+
+
+
+
+
+#I DID NOT RUN THE REST 
+
+```{r}
+#hist(highLow_DF$bkfs_soda, main = "Distribution of soda per day \nn=1568 (soda intake groups matched on age, bmi% and household income)")
+```
+
+
+```{r}
+library(psych)
+describeBy(df$rsfmri_cor_ngd_none_scs_cderh, df$ssb_group)
+```
+
+# Descriptives
+```{r}
+dim(highLow_DF)
+```
+
+
+```{r}
+#save.image(file = "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+```
+
+```{r}
+load("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.RData")
+```
+
+```{r}
+library(psych)
+describeBy(highLow_DF$bkfs_soda, highLow_DF$ssb_group )
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+names(highlow_DFbak)
+```
+
+
+```{r}
+# Scatterplot with a line of best fit
+# Same, but with different colors and add regression lines
+ggplot(highlow_DFbak, aes(x=as.numeric(as.character(demo_comb_income_v2)), y=bmi_perc, color=ssb_group)) +
+    geom_point(shape=1) +
+    geom_smooth(method=lm) + theme_classic()+
+    labs(
+        x = "Combined Household Income",  # Custom x-axis label
+        y = "BMI percentile"   # Custom y-axis label
+    )+ scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10))
+
+```
+
+# adding in the motion for the brain data
+```{r}
+names(brain_data)
+summary(as.numeric(brain_data$rsfmri_c_ngd_meanmotion))
+motion<-c("subjectkey","rsfmri_c_ngd_meanmotion")
+brain_motion<-brain_data[,motion]
+
+withMotion<-join(dummy_vars, brain_motion)
+
+withMotion$rsfmri_c_ngd_meanmotionScaled<-scale(as.numeric(withMotion$rsfmri_c_ngd_meanmotion), center = T, scale = F)
+describe.by(as.numeric(withMotion$rsfmri_c_ngd_meanmotion), withMotion$ssb_group)
+```
+
+
+```{r}
+library(psych)
+describeBy(withMotion$rsfmri_c_ngd_meanmotion, withMotion$ssb_group)
+```
+```{r}
+t.test(withMotion)
+```
+
+
+```{r}
+#write.table(withMotion, "~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/matched021325_centered_dum.csv",  row.names = FALSE, sep = ",")
+write.table(withMotion, r"(C:\Users\Yanko\OneDrive - University of Wyoming\Desktop - Copy\Lab\SSIB 2024\0 PAPER\peer review\data\matched021325_centered_dum.csv)",  row.names = FALSE, sep = ",")
+```
+
+#create a df of imaging sites to add to the binary regression
+```{r}
+final_subs <- withMotion$subjectkey
+imaging_site_df <- imaging_site %>%
+  filter(subjectkey %in% final_subs) %>%
+  select(subjectkey, site_id_l) #n=3570
+```
+
