@@ -1,0 +1,229 @@
+---
+title: "Binary Logistic regression"
+output: html_notebook
+---
+
+```{r}
+require(ggplot2)
+require(GGally)
+require(reshape2)
+require(lme4)
+require(compiler)
+require(parallel)
+require(boot)
+require(lattice)
+library(vroom)
+library(plyr)
+library(dplyr)
+library(lme4)
+library(optimx)
+```
+
+```{r}
+path2data<-"/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/raw"
+
+df<-vroom("~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.csv")
+imaging_site_data <- vroom(paste(path2data,"abcd_lt01.txt",sep = "/"))
+```
+```{r}
+subs<-df$subjectkey
+imaging_site_df<-imaging_site_data[(imaging_site_data$subjectkey %in% subs),]
+imaging_site_df<-subset(imaging_site_df, imaging_site_df$eventname == "baseline_year_1_arm_1")
+names(imaging_site_df)
+img_df<-imaging_site_df[,c("subjectkey", "site_id_l")]
+df<-join(df, img_df)
+```
+
+
+
+
+```{r}
+interest<-c('subjectkey','site_id_l', 'sex','age_years', 'bmi_perc', 'ssb_group', 'race', 'rel_family_id', 'rsfmri_c_ngd_ad_ngd_smh', 'rsfmri_c_ngd_ad_ngd_vs',
+       'rsfmri_c_ngd_cgc_ngd_cgc', 'rsfmri_c_ngd_cgc_ngd_vs',
+       'rsfmri_c_ngd_ca_ngd_smh', 'rsfmri_c_ngd_ca_ngd_vta',
+       'rsfmri_c_ngd_smh_ngd_smh', 'rsfmri_c_ngd_smh_ngd_smm',
+       'rsfmri_c_ngd_smh_ngd_vs', 'rsfmri_c_ngd_vta_ngd_vs',
+       'rsfmri_cor_ngd_au_scs_crcxlh', 'rsfmri_cor_ngd_au_scs_cdelh',
+       'rsfmri_cor_ngd_au_scs_ptlh', 'rsfmri_cor_ngd_au_scs_aalh',
+       'rsfmri_cor_ngd_au_scs_vtdclh', 'rsfmri_cor_ngd_au_scs_ptrh',
+       'rsfmri_cor_ngd_au_scs_plrh', 'rsfmri_cor_ngd_au_scs_hprh',
+       'rsfmri_cor_ngd_cerc_scs_cdelh', 'rsfmri_cor_ngd_cerc_scs_ptlh',
+       'rsfmri_cor_ngd_cerc_scs_aglh', 'rsfmri_cor_ngd_cerc_scs_aalh',
+       'rsfmri_cor_ngd_cerc_scs_hprh', 'rsfmri_cor_ngd_cerc_scs_agrh',
+       'rsfmri_cor_ngd_cerc_scs_vtdcrh', 'rsfmri_cor_ngd_copa_scs_vtdclh',
+       'rsfmri_cor_ngd_df_scs_ptlh', 'rsfmri_cor_ngd_df_scs_pllh',
+       'rsfmri_cor_ngd_df_scs_agrh', 'rsfmri_cor_ngd_dsa_scs_vtdcrh',
+       'rsfmri_cor_ngd_none_scs_thprh', 'rsfmri_cor_ngd_none_scs_cderh',
+       'rsfmri_cor_ngd_none_scs_ptrh', 'rsfmri_cor_ngd_none_scs_agrh',
+       'rsfmri_cor_ngd_rst_scs_crcxlh', 'rsfmri_cor_ngd_rst_scs_bs',
+       'rsfmri_cor_ngd_rst_scs_crcxrh', 'rsfmri_cor_ngd_rst_scs_thprh',
+       'rsfmri_cor_ngd_rst_scs_hprh', 'rsfmri_cor_ngd_rst_scs_vtdcrh',
+       'rsfmri_cor_ngd_smh_scs_crcxlh', 'rsfmri_cor_ngd_smh_scs_pllh',
+       'rsfmri_cor_ngd_smh_scs_bs', 'rsfmri_cor_ngd_smh_scs_cderh',
+       'rsfmri_cor_ngd_smh_scs_ptrh', 'rsfmri_cor_ngd_smh_scs_hprh',
+       'rsfmri_cor_ngd_smh_scs_aarh', 'rsfmri_cor_ngd_smh_scs_vtdcrh',
+       'rsfmri_cor_ngd_smm_scs_thprh', 'rsfmri_cor_ngd_sa_scs_crcxlh',
+       'rsfmri_cor_ngd_sa_scs_thplh', 'rsfmri_cor_ngd_sa_scs_aalh',
+       'rsfmri_cor_ngd_vta_scs_hplh', 'rsfmri_cor_ngd_vta_scs_aalh',
+       'rsfmri_cor_ngd_vs_scs_thprh', 'rsfmri_cor_ngd_vs_scs_cderh',
+       'rsfmri_cor_ngd_vs_scs_plrh', 'rsfmri_cor_ngd_vs_scs_hprh')
+
+
+df<-df[,interest]
+dfHL<-subset(df, df$ssb_group != "medium")
+```
+
+
+```{r}
+dfHL[,c(4:5,9:66)]<-sapply(dfHL[,c(4:5,9:66)], as.numeric)
+dfHL[,c(4:5,9:66)]<-scale(dfHL[,c(4:5,9:66)], center = T, scale = F)
+dfHL[,c(1:3,6:8)]<-sapply(dfHL[,c(1:3,6:8)], as.factor)
+dfHL$sex<-as.factor(dfHL$sex)
+dfHL$ssb_group<-as.factor(dfHL$ssb_group)
+dfHL$race<-as.factor(dfHL$race)
+dfHL$rel_family_id<-as.factor(dfHL$rel_family_id)
+dfHL$site_id_l<-as.factor(dfHL$site_id_l)
+sapply(dfHL, class)
+```
+
+
+```{r}
+cor_matrix <- cor(dfHL[,c('age_years', 'bmi_perc','rsfmri_c_ngd_ad_ngd_smh', 'rsfmri_c_ngd_ad_ngd_vs',
+       'rsfmri_c_ngd_cgc_ngd_cgc', 'rsfmri_c_ngd_cgc_ngd_vs',
+       'rsfmri_c_ngd_ca_ngd_smh', 'rsfmri_c_ngd_ca_ngd_vta',
+       'rsfmri_c_ngd_smh_ngd_smh', 'rsfmri_c_ngd_smh_ngd_smm',
+       'rsfmri_c_ngd_smh_ngd_vs', 'rsfmri_c_ngd_vta_ngd_vs',
+       'rsfmri_cor_ngd_au_scs_crcxlh', 'rsfmri_cor_ngd_au_scs_cdelh',
+       'rsfmri_cor_ngd_au_scs_ptlh', 'rsfmri_cor_ngd_au_scs_aalh',
+       'rsfmri_cor_ngd_au_scs_vtdclh', 'rsfmri_cor_ngd_au_scs_ptrh',
+       'rsfmri_cor_ngd_au_scs_plrh', 'rsfmri_cor_ngd_au_scs_hprh',
+       'rsfmri_cor_ngd_cerc_scs_cdelh', 'rsfmri_cor_ngd_cerc_scs_ptlh',
+       'rsfmri_cor_ngd_cerc_scs_aglh', 'rsfmri_cor_ngd_cerc_scs_aalh',
+       'rsfmri_cor_ngd_cerc_scs_hprh', 'rsfmri_cor_ngd_cerc_scs_agrh',
+       'rsfmri_cor_ngd_cerc_scs_vtdcrh', 'rsfmri_cor_ngd_copa_scs_vtdclh',
+       'rsfmri_cor_ngd_df_scs_ptlh', 'rsfmri_cor_ngd_df_scs_pllh',
+       'rsfmri_cor_ngd_df_scs_agrh', 'rsfmri_cor_ngd_dsa_scs_vtdcrh',
+       'rsfmri_cor_ngd_none_scs_thprh', 'rsfmri_cor_ngd_none_scs_cderh',
+       'rsfmri_cor_ngd_none_scs_ptrh', 'rsfmri_cor_ngd_none_scs_agrh',
+       'rsfmri_cor_ngd_rst_scs_crcxlh', 'rsfmri_cor_ngd_rst_scs_bs',
+       'rsfmri_cor_ngd_rst_scs_crcxrh', 'rsfmri_cor_ngd_rst_scs_thprh',
+       'rsfmri_cor_ngd_rst_scs_hprh', 'rsfmri_cor_ngd_rst_scs_vtdcrh',
+       'rsfmri_cor_ngd_smh_scs_crcxlh', 'rsfmri_cor_ngd_smh_scs_pllh',
+       'rsfmri_cor_ngd_smh_scs_bs', 'rsfmri_cor_ngd_smh_scs_cderh',
+       'rsfmri_cor_ngd_smh_scs_ptrh', 'rsfmri_cor_ngd_smh_scs_hprh',
+       'rsfmri_cor_ngd_smh_scs_aarh', 'rsfmri_cor_ngd_smh_scs_vtdcrh',
+       'rsfmri_cor_ngd_smm_scs_thprh', 'rsfmri_cor_ngd_sa_scs_crcxlh',
+       'rsfmri_cor_ngd_sa_scs_thplh', 'rsfmri_cor_ngd_sa_scs_aalh',
+       'rsfmri_cor_ngd_vta_scs_hplh', 'rsfmri_cor_ngd_vta_scs_aalh',
+       'rsfmri_cor_ngd_vs_scs_thprh', 'rsfmri_cor_ngd_vs_scs_cderh',
+       'rsfmri_cor_ngd_vs_scs_plrh', 'rsfmri_cor_ngd_vs_scs_hprh')], use = "pairwise.complete.obs")
+
+high_corr <- which(abs(cor_matrix) > 0.8 & abs(cor_matrix) < 1, arr.ind = TRUE)
+unique_pairs <- unique(t(apply(high_corr, 1, sort)))
+for (i in 1:nrow(unique_pairs)) {
+  var1 <- rownames(cor_matrix)[unique_pairs[i, 1]]
+  var2 <- colnames(cor_matrix)[unique_pairs[i, 2]]
+  cat(sprintf("%s and %s: %.2f\n", var1, var2, cor_matrix[var1, var2]))
+}
+#rsfmri_cor_ngd_au_scs_ptrh and rsfmri_cor_ngd_rst_scs_crcxrh: 0.86
+#rsfmri_cor_ngd_cerc_scs_cdelh and rsfmri_cor_ngd_rst_scs_vtdcrh: 0.84
+#rsfmri_cor_ngd_cerc_scs_ptlh and rsfmri_cor_ngd_smh_scs_crcxlh: 0.81
+#rsfmri_cor_ngd_cerc_scs_aglh and rsfmri_cor_ngd_smh_scs_pllh: 0.89
+#rsfmri_cor_ngd_cerc_scs_hprh and rsfmri_cor_ngd_smh_scs_cderh: 0.91
+#rsfmri_cor_ngd_cerc_scs_agrh and rsfmri_cor_ngd_smh_scs_ptrh: 0.85
+#rsfmri_cor_ngd_cerc_scs_vtdcrh and rsfmri_cor_ngd_smh_scs_hprh: 0.83
+
+set1<-c("rsfmri_cor_ngd_au_scs_ptrh","rsfmri_cor_ngd_cerc_scs_cdelh", "rsfmri_cor_ngd_cerc_scs_ptlh", "rsfmri_cor_ngd_cerc_scs_aglh", "rsfmri_cor_ngd_cerc_scs_hprh", "rsfmri_cor_ngd_cerc_scs_agrh", "rsfmri_cor_ngd_cerc_scs_vtdcrh")
+
+set2<-c("rsfmri_cor_ngd_rst_scs_crcxrh","rsfmri_cor_ngd_rst_scs_vtdcrh","rsfmri_cor_ngd_smh_scs_crcxlh","rsfmri_cor_ngd_smh_scs_pllh","rsfmri_cor_ngd_smh_scs_cderh","rsfmri_cor_ngd_smh_scs_ptrh","rsfmri_cor_ngd_smh_scs_hprh")
+
+allROI<-c('rsfmri_c_ngd_ad_ngd_smh', 'rsfmri_c_ngd_ad_ngd_vs',
+       'rsfmri_c_ngd_cgc_ngd_cgc', 'rsfmri_c_ngd_cgc_ngd_vs',
+       'rsfmri_c_ngd_ca_ngd_smh', 'rsfmri_c_ngd_ca_ngd_vta',
+       'rsfmri_c_ngd_smh_ngd_smh', 'rsfmri_c_ngd_smh_ngd_smm',
+       'rsfmri_c_ngd_smh_ngd_vs', 'rsfmri_c_ngd_vta_ngd_vs',
+       'rsfmri_cor_ngd_au_scs_crcxlh', 'rsfmri_cor_ngd_au_scs_cdelh',
+       'rsfmri_cor_ngd_au_scs_ptlh', 'rsfmri_cor_ngd_au_scs_aalh',
+       'rsfmri_cor_ngd_au_scs_vtdclh', 'rsfmri_cor_ngd_au_scs_ptrh',
+       'rsfmri_cor_ngd_au_scs_plrh', 'rsfmri_cor_ngd_au_scs_hprh',
+       'rsfmri_cor_ngd_cerc_scs_cdelh', 'rsfmri_cor_ngd_cerc_scs_ptlh',
+       'rsfmri_cor_ngd_cerc_scs_aglh', 'rsfmri_cor_ngd_cerc_scs_aalh',
+       'rsfmri_cor_ngd_cerc_scs_hprh', 'rsfmri_cor_ngd_cerc_scs_agrh',
+       'rsfmri_cor_ngd_cerc_scs_vtdcrh', 'rsfmri_cor_ngd_copa_scs_vtdclh',
+       'rsfmri_cor_ngd_df_scs_ptlh', 'rsfmri_cor_ngd_df_scs_pllh',
+       'rsfmri_cor_ngd_df_scs_agrh', 'rsfmri_cor_ngd_dsa_scs_vtdcrh',
+       'rsfmri_cor_ngd_none_scs_thprh', 'rsfmri_cor_ngd_none_scs_cderh',
+       'rsfmri_cor_ngd_none_scs_ptrh', 'rsfmri_cor_ngd_none_scs_agrh',
+       'rsfmri_cor_ngd_rst_scs_crcxlh', 'rsfmri_cor_ngd_rst_scs_bs',
+       'rsfmri_cor_ngd_rst_scs_crcxrh', 'rsfmri_cor_ngd_rst_scs_thprh',
+       'rsfmri_cor_ngd_rst_scs_hprh', 'rsfmri_cor_ngd_rst_scs_vtdcrh',
+       'rsfmri_cor_ngd_smh_scs_crcxlh', 'rsfmri_cor_ngd_smh_scs_pllh',
+       'rsfmri_cor_ngd_smh_scs_bs', 'rsfmri_cor_ngd_smh_scs_cderh',
+       'rsfmri_cor_ngd_smh_scs_ptrh', 'rsfmri_cor_ngd_smh_scs_hprh',
+       'rsfmri_cor_ngd_smh_scs_aarh', 'rsfmri_cor_ngd_smh_scs_vtdcrh',
+       'rsfmri_cor_ngd_smm_scs_thprh', 'rsfmri_cor_ngd_sa_scs_crcxlh',
+       'rsfmri_cor_ngd_sa_scs_thplh', 'rsfmri_cor_ngd_sa_scs_aalh',
+       'rsfmri_cor_ngd_vta_scs_hplh', 'rsfmri_cor_ngd_vta_scs_aalh',
+       'rsfmri_cor_ngd_vs_scs_thprh', 'rsfmri_cor_ngd_vs_scs_cderh',
+       'rsfmri_cor_ngd_vs_scs_plrh', 'rsfmri_cor_ngd_vs_scs_hprh')
+
+ROIs2<-setdiff(allROI, set1)
+ROIs1<-setdiff(allROI, set2)
+```
+
+
+```{r}
+# Define outcome and random effects
+outcome <- "as.factor(ssb_group)"
+random_effects <- "(1 | site_id_l/rel_family_id)"
+
+# Exclude outcome and random effect grouping variables from predictors
+predictors <- c(ROIs1, 'sex','age_years', 'bmi_perc')
+
+# Build the formula string
+formula_str <- paste(outcome, "~", paste(predictors, collapse = " + "), "+", random_effects)
+
+# Fit the model
+mROIset1 <- glmer(as.formula(formula_str), data = dfHL, family = binomial, control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+summaryROIset1<-summary(mROIset1)
+```
+
+```{r}
+summaryROIset1
+```
+
+
+```{r}
+ROIset1Pvalues<-summaryROIset1$coefficients[,4]
+ROIswt1PvaluesFDR <- p.adjust(ROIset1Pvalues, method = "fdr")
+round(ROIswt1PvaluesFDR,4)
+```
+
+
+rsfmri_cor_ngd_vs_scs_cderh
+Average correlation between visual network and ASEG ROI right-caudate
+
+```{r}
+# Exclude outcome and random effect grouping variables from predictors
+predictors <- c(ROIs2, 'sex','age_years', 'bmi_perc')
+
+# Build the formula string
+formula_str <- paste(outcome, "~", paste(predictors, collapse = " + "), "+", random_effects)
+
+# Fit the model
+mROIset2 <- glmer(as.formula(formula_str), data = dfHL, family = binomial, control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+summaryROIset2<-summary(mROIset2)
+```
+
+```{r}
+summaryROIset2
+```
+
+
+```{r}
+ROIset2Pvalues<-summaryROIset2$coefficients[,4]
+ROIswt2PvaluesFDR <- p.adjust(ROIset2Pvalues, method = "fdr")
+round(ROIswt2PvaluesFDR,4)
+```
+rsfmri_cor_ngd_vs_scs_cderh 
+Average correlation between visual network and ASEG ROI right-caudate
