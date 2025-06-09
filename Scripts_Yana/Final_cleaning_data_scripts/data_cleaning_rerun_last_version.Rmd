@@ -56,6 +56,7 @@ imaging_site_df <- subset(imaging_site_data, imaging_site_data$eventname == "bas
 imaging_site_df<-imaging_site_df[ , !(names(imaging_site_df) %in% drops)]
 ```
 
+# Merge all at first
 ```{r}
 df<-join(anthro_df, demo_df)
 df<-join(df, brain_df)
@@ -71,9 +72,9 @@ soda_df<-soda_df[ , !(names(soda_df) %in% drops2)]
 df<-join(df,soda_df)
 #11876
 ```
+
 # First screen on obvious 
 ## Start n = 11875
-
 ```{r}
 df <-subset(df, df$scrn_cpalsy != 0) #11188
 df <- subset(df, df$scrn_hemorrhage != 0)#11184
@@ -287,6 +288,7 @@ tallTest<-subset(tallTest, tallTest$growth > 0)
 tallTest<-subset(tallTest, tallTest$growth < 5 )
 summary(as.numeric(tallTest$anthroheightcalc0))
 ```
+
 ```{r}
 df<-subset(df, df$anthroheightcalc < 60) #8281 60 in is above 95% for boys age 9
 
@@ -523,6 +525,7 @@ df<-vroom("/Users/gracer/Library/CloudStorage/OneDrive-UniversityofWyoming/0. La
 ```{r}
 df<-df[complete.cases(df),] #3997
 summary(as.factor(df$ssb_group))
+write.table(df,"~/OneDrive - University of Wyoming/0. Lab/M2AENAD Lab - Documents/RESEARCH/ABCD/Yana_SSIB_2024/data/finalDF.csv", sep = ",", row.names = F)
 ```
 
 # Create high vs low, and low vs. medium datasets
@@ -814,7 +817,36 @@ class(dummy_vars$demo_comb_income_v2)
 ```{r}
 save.image(file = "data_cleaning_rerun.RData")
 ```
-
+# Features
+'rsfmri_c_ngd_ad_ngd_smh', 'rsfmri_c_ngd_ad_ngd_vs',
+       'rsfmri_c_ngd_cgc_ngd_cgc', 'rsfmri_c_ngd_cgc_ngd_vs',
+       'rsfmri_c_ngd_ca_ngd_smh', 'rsfmri_c_ngd_ca_ngd_vta',
+       'rsfmri_c_ngd_smh_ngd_smh', 'rsfmri_c_ngd_smh_ngd_smm',
+       'rsfmri_c_ngd_smh_ngd_vs', 'rsfmri_c_ngd_vta_ngd_vs',
+       'rsfmri_cor_ngd_au_scs_crcxlh', 'rsfmri_cor_ngd_au_scs_cdelh',
+       'rsfmri_cor_ngd_au_scs_ptlh', 'rsfmri_cor_ngd_au_scs_aalh',
+       'rsfmri_cor_ngd_au_scs_vtdclh', 'rsfmri_cor_ngd_au_scs_ptrh',
+       'rsfmri_cor_ngd_au_scs_plrh', 'rsfmri_cor_ngd_au_scs_hprh',
+       'rsfmri_cor_ngd_cerc_scs_cdelh', 'rsfmri_cor_ngd_cerc_scs_ptlh',
+       'rsfmri_cor_ngd_cerc_scs_aglh', 'rsfmri_cor_ngd_cerc_scs_aalh',
+       'rsfmri_cor_ngd_cerc_scs_hprh', 'rsfmri_cor_ngd_cerc_scs_agrh',
+       'rsfmri_cor_ngd_cerc_scs_vtdcrh', 'rsfmri_cor_ngd_copa_scs_vtdclh',
+       'rsfmri_cor_ngd_df_scs_ptlh', 'rsfmri_cor_ngd_df_scs_pllh',
+       'rsfmri_cor_ngd_df_scs_agrh', 'rsfmri_cor_ngd_dsa_scs_vtdcrh',
+       'rsfmri_cor_ngd_none_scs_thprh', 'rsfmri_cor_ngd_none_scs_cderh',
+       'rsfmri_cor_ngd_none_scs_ptrh', 'rsfmri_cor_ngd_none_scs_agrh',
+       'rsfmri_cor_ngd_rst_scs_crcxlh', 'rsfmri_cor_ngd_rst_scs_bs',
+       'rsfmri_cor_ngd_rst_scs_crcxrh', 'rsfmri_cor_ngd_rst_scs_thprh',
+       'rsfmri_cor_ngd_rst_scs_hprh', 'rsfmri_cor_ngd_rst_scs_vtdcrh',
+       'rsfmri_cor_ngd_smh_scs_crcxlh', 'rsfmri_cor_ngd_smh_scs_pllh',
+       'rsfmri_cor_ngd_smh_scs_bs', 'rsfmri_cor_ngd_smh_scs_cderh',
+       'rsfmri_cor_ngd_smh_scs_ptrh', 'rsfmri_cor_ngd_smh_scs_hprh',
+       'rsfmri_cor_ngd_smh_scs_aarh', 'rsfmri_cor_ngd_smh_scs_vtdcrh',
+       'rsfmri_cor_ngd_smm_scs_thprh', 'rsfmri_cor_ngd_sa_scs_crcxlh',
+       'rsfmri_cor_ngd_sa_scs_thplh', 'rsfmri_cor_ngd_sa_scs_aalh',
+       'rsfmri_cor_ngd_vta_scs_hplh', 'rsfmri_cor_ngd_vta_scs_aalh',
+       'rsfmri_cor_ngd_vs_scs_thprh', 'rsfmri_cor_ngd_vs_scs_cderh',
+       'rsfmri_cor_ngd_vs_scs_plrh', 'rsfmri_cor_ngd_vs_scs_hprh', 'sex_M'
 
 
 
